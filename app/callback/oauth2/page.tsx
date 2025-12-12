@@ -1,0 +1,147 @@
+'use client';
+
+import { useMemo, useState, Suspense } from 'react';
+import { useSearchParams, useRouter } from 'next/navigation';
+import { Card } from '@/components/Card';
+import { Alert } from '@/components/Alert';
+import { Button } from '@/components/Button';
+import { CodeBlock } from '@/components/CodeBlock';
+import Link from 'next/link';
+import { CheckCircle, Home, ArrowRight } from 'lucide-react';
+
+function CallbackContent() {
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const [messageSent, setMessageSent] = useState(false);
+
+  // Derive params from searchParams without using state
+  const params = useMemo(() => {
+    const paramsObj: Record<string, string> = {};
+    searchParams.forEach((value, key) => {
+      paramsObj[key] = value;
+    });
+    return paramsObj;
+  }, [searchParams]);
+
+  // Derive error from params
+  const error = useMemo(() => {
+    return params.error ? (params.error_description || params.error) : null;
+  }, [params]);
+
+  const handleContinue = () => {
+    // Send message to parent window (opener) when user clicks button
+    if (window.opener) {
+      try {
+        window.opener.postMessage(
+          {
+            type: 'oauth2_callback',
+            code: params.code,
+            state: params.state,
+            access_token: params.access_token,
+            token_type: params.token_type,
+            expires_in: params.expires_in,
+            error: params.error,
+            error_description: params.error_description,
+          },
+          window.location.origin
+        );
+        setMessageSent(true);
+        
+        // Close the window after message is sent
+        setTimeout(() => {
+          window.close();
+          // If window doesn't close (some browsers block it), redirect
+          if (!window.closed) {
+            router.push('/flows/oauth2');
+          }
+        }, 500);
+      } catch (err) {
+        console.error('Failed to send message to opener:', err);
+        // Fallback: just redirect
+        router.push('/flows/oauth2');
+      }
+    } else {
+      // No opener, just redirect
+      router.push('/flows/oauth2');
+    }
+  };
+
+  return (
+    <div className="p-8 max-w-4xl mx-auto">
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-2">
+          OAuth 2.0 Callback
+        </h1>
+        <p className="text-gray-600 dark:text-gray-400">
+          Authorization callback received
+        </p>
+      </div>
+
+      {error ? (
+        <Alert variant="error" title="Authorization Error">
+          {error}
+        </Alert>
+      ) : (
+        <Alert variant="success" title="Callback Received">
+          <div className="flex items-center gap-2">
+            <CheckCircle className="w-5 h-5" />
+            Authorization callback was successfully received. Review the parameters below and click "Next Step" to continue.
+          </div>
+        </Alert>
+      )}
+
+      <Card title="Callback Parameters" className="mt-6">
+        <CodeBlock code={JSON.stringify(params, null, 2)} language="json" />
+      </Card>
+
+      <div className="mt-6 flex gap-4">
+        {!error && (params.code || params.access_token) && (
+          <Button onClick={handleContinue} disabled={messageSent}>
+            {messageSent ? 'Redirecting...' : (
+              <>
+                Next Step - Continue to {params.code ? 'Token Exchange' : 'Flow Page'}
+                <ArrowRight className="w-4 h-4" />
+              </>
+            )}
+          </Button>
+        )}
+        <Link href="/flows/oauth2">
+          <Button variant={error ? 'primary' : 'secondary'}>
+            Return to OAuth 2.0 Flow
+          </Button>
+        </Link>
+        <Link href="/">
+          <Button variant="ghost">
+            <Home className="w-4 h-4" />
+            Home
+          </Button>
+        </Link>
+      </div>
+
+      {!error && (params.code || params.access_token) && (
+        <div className="mt-6 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+          <p className="text-sm text-gray-700 dark:text-gray-300">
+            <strong>💡 Tip:</strong> Click "Next Step" to automatically send this {params.code ? 'authorization code' : 'access token'} 
+            to the OAuth 2.0 flow page {params.code ? 'for token exchange' : ''}. The window will close automatically after sending.
+          </p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+export default function OAuth2CallbackPage() {
+  return (
+    <Suspense fallback={
+      <div className="p-8 max-w-4xl mx-auto">
+        <Card>
+          <div className="text-center py-8">
+            <p className="text-gray-600 dark:text-gray-400">Loading callback data...</p>
+          </div>
+        </Card>
+      </div>
+    }>
+      <CallbackContent />
+    </Suspense>
+  );
+}
