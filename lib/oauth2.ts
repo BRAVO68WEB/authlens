@@ -15,6 +15,7 @@ export function buildOAuth2AuthorizationUrl(params: {
   scope?: string;
   state?: string;
   responseType?: 'code' | 'token';
+  prompt?: string;
   codeChallenge?: string;
   codeChallengeMethod?: 'S256' | 'plain';
 }): string {
@@ -24,12 +25,13 @@ export function buildOAuth2AuthorizationUrl(params: {
     response_type: params.responseType || 'code',
     ...(params.scope && { scope: params.scope }),
     ...(params.state && { state: params.state }),
+    ...(params.prompt && { prompt: params.prompt }),
     ...(params.codeChallenge && {
       code_challenge: params.codeChallenge,
       code_challenge_method: params.codeChallengeMethod || 'S256',
     }),
   };
-  
+
   const query = buildQueryString(queryParams);
   return `${params.authorizationEndpoint}?${query}`;
 }
@@ -51,33 +53,33 @@ export async function exchangeAuthorizationCode(params: {
     redirect_uri: params.redirectUri,
     client_id: params.clientId,
   };
-  
+
   if (params.codeVerifier) {
     body.code_verifier = params.codeVerifier;
   }
-  
+
   const headers: Record<string, string> = {
     'Content-Type': 'application/x-www-form-urlencoded',
   };
-  
+
   if (params.clientSecret) {
     const credentials = btoa(`${params.clientId}:${params.clientSecret}`);
     headers['Authorization'] = `Basic ${credentials}`;
   }
-  
+
   const response = await fetch(params.tokenEndpoint, {
     method: 'POST',
     headers,
     body: objectToFormData(body).toString(),
   });
-  
+
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
     throw new Error(
       `Token exchange failed: ${errorData.error_description || errorData.error || response.statusText}`
     );
   }
-  
+
   return response.json();
 }
 
@@ -98,33 +100,33 @@ export async function requestPasswordGrant(params: {
     password: params.password,
     client_id: params.clientId,
   };
-  
+
   if (params.scope) {
     body.scope = params.scope;
   }
-  
+
   const headers: Record<string, string> = {
     'Content-Type': 'application/x-www-form-urlencoded',
   };
-  
+
   if (params.clientSecret) {
     const credentials = btoa(`${params.clientId}:${params.clientSecret}`);
     headers['Authorization'] = `Basic ${credentials}`;
   }
-  
+
   const response = await fetch(params.tokenEndpoint, {
     method: 'POST',
     headers,
     body: objectToFormData(body).toString(),
   });
-  
+
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
     throw new Error(
       `Password grant failed: ${errorData.error_description || errorData.error || response.statusText}`
     );
   }
-  
+
   return response.json();
 }
 
@@ -141,29 +143,29 @@ export async function requestClientCredentials(params: {
     grant_type: 'client_credentials',
     client_id: params.clientId,
   };
-  
+
   if (params.scope) {
     body.scope = params.scope;
   }
-  
+
   const headers: Record<string, string> = {
     'Content-Type': 'application/x-www-form-urlencoded',
     Authorization: `Basic ${btoa(`${params.clientId}:${params.clientSecret}`)}`,
   };
-  
+
   const response = await fetch(params.tokenEndpoint, {
     method: 'POST',
     headers,
     body: objectToFormData(body).toString(),
   });
-  
+
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
     throw new Error(
       `Client credentials grant failed: ${errorData.error_description || errorData.error || response.statusText}`
     );
   }
-  
+
   return response.json();
 }
 
@@ -182,33 +184,33 @@ export async function refreshToken(params: {
     refresh_token: params.refreshToken,
     client_id: params.clientId,
   };
-  
+
   if (params.scope) {
     body.scope = params.scope;
   }
-  
+
   const headers: Record<string, string> = {
     'Content-Type': 'application/x-www-form-urlencoded',
   };
-  
+
   if (params.clientSecret) {
     const credentials = btoa(`${params.clientId}:${params.clientSecret}`);
     headers['Authorization'] = `Basic ${credentials}`;
   }
-  
+
   const response = await fetch(params.tokenEndpoint, {
     method: 'POST',
     headers,
     body: objectToFormData(body).toString(),
   });
-  
+
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
     throw new Error(
       `Token refresh failed: ${errorData.error_description || errorData.error || response.statusText}`
     );
   }
-  
+
   return response.json();
 }
 
@@ -224,33 +226,33 @@ export async function startDeviceAuthorization(params: {
   const body: Record<string, string> = {
     client_id: params.clientId,
   };
-  
+
   if (params.scope) {
     body.scope = params.scope;
   }
-  
+
   const headers: Record<string, string> = {
     'Content-Type': 'application/x-www-form-urlencoded',
   };
-  
+
   if (params.clientSecret) {
     const credentials = btoa(`${params.clientId}:${params.clientSecret}`);
     headers['Authorization'] = `Basic ${credentials}`;
   }
-  
+
   const response = await fetch(params.deviceAuthorizationEndpoint, {
     method: 'POST',
     headers,
     body: objectToFormData(body).toString(),
   });
-  
+
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
     throw new Error(
       `Device authorization failed: ${errorData.error_description || errorData.error || response.statusText}`
     );
   }
-  
+
   return response.json();
 }
 
@@ -273,46 +275,46 @@ export async function pollDeviceToken(params: {
     device_code: params.deviceCode,
     client_id: params.clientId,
   };
-  
+
   const headers: Record<string, string> = {
     'Content-Type': 'application/x-www-form-urlencoded',
   };
-  
+
   if (params.clientSecret) {
     const credentials = btoa(`${params.clientId}:${params.clientSecret}`);
     headers['Authorization'] = `Basic ${credentials}`;
   }
-  
+
   const response = await fetch(params.tokenEndpoint, {
     method: 'POST',
     headers,
     body: objectToFormData(body).toString(),
   });
-  
+
   if (response.ok) {
     const tokens = await response.json();
     return { status: 'complete', tokens };
   }
-  
+
   const errorData = await response.json().catch(() => ({}));
   const error = errorData.error;
-  
+
   if (error === 'authorization_pending') {
     return { status: 'pending' };
   }
-  
+
   if (error === 'slow_down') {
     return { status: 'slow_down', interval: errorData.interval };
   }
-  
+
   if (error === 'expired_token') {
     return { status: 'expired', error: errorData.error_description };
   }
-  
+
   if (error === 'access_denied') {
     return { status: 'denied', error: errorData.error_description };
   }
-  
+
   return { status: 'denied', error: error || 'Unknown error' };
 }
 
@@ -330,30 +332,30 @@ export async function introspectToken(params: {
     token: params.token,
     client_id: params.clientId,
   };
-  
+
   if (params.tokenTypeHint) {
     body.token_type_hint = params.tokenTypeHint;
   }
-  
+
   const headers: Record<string, string> = {
     'Content-Type': 'application/x-www-form-urlencoded',
   };
-  
+
   if (params.clientSecret) {
     const credentials = btoa(`${params.clientId}:${params.clientSecret}`);
     headers['Authorization'] = `Basic ${credentials}`;
   }
-  
+
   const response = await fetch(params.introspectionEndpoint, {
     method: 'POST',
     headers,
     body: objectToFormData(body).toString(),
   });
-  
+
   if (!response.ok) {
     throw new Error(`Token introspection failed: ${response.statusText}`);
   }
-  
+
   return response.json();
 }
 
@@ -371,26 +373,26 @@ export async function revokeToken(params: {
     token: params.token,
     client_id: params.clientId,
   };
-  
+
   if (params.tokenTypeHint) {
     body.token_type_hint = params.tokenTypeHint;
   }
-  
+
   const headers: Record<string, string> = {
     'Content-Type': 'application/x-www-form-urlencoded',
   };
-  
+
   if (params.clientSecret) {
     const credentials = btoa(`${params.clientId}:${params.clientSecret}`);
     headers['Authorization'] = `Basic ${credentials}`;
   }
-  
+
   const response = await fetch(params.revocationEndpoint, {
     method: 'POST',
     headers,
     body: objectToFormData(body).toString(),
   });
-  
+
   if (!response.ok) {
     throw new Error(`Token revocation failed: ${response.statusText}`);
   }

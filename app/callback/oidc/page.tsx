@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState, Suspense } from 'react';
+import { useMemo, useState, useEffect, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Card } from '@/components/Card';
 import { Alert } from '@/components/Alert';
@@ -8,6 +8,7 @@ import { Button } from '@/components/Button';
 import { CodeBlock } from '@/components/CodeBlock';
 import Link from 'next/link';
 import { CheckCircle, Home, ArrowRight } from 'lucide-react';
+import { getPromptErrorExplanation } from '@/lib/prompt';
 
 function CallbackContent() {
   const searchParams = useSearchParams();
@@ -43,7 +44,7 @@ function CallbackContent() {
           window.location.origin
         );
         setMessageSent(true);
-        
+
         // Close the window after message is sent
         setTimeout(() => {
           window.close();
@@ -76,7 +77,20 @@ function CallbackContent() {
 
       {error ? (
         <Alert variant="error" title="Authorization Error">
-          {error}
+          <div className="space-y-2">
+            <p className="font-medium font-mono text-sm">{params.error}</p>
+            {params.error_description && (
+              <p>{params.error_description}</p>
+            )}
+            {params.error && getPromptErrorExplanation(params.error) && (
+              <div className="mt-3 p-3 bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-red-800 rounded-lg text-sm">
+                <p className="font-medium mb-1">💡 What does this mean?</p>
+                <p className="text-gray-700 dark:text-gray-300">
+                  {getPromptErrorExplanation(params.error)}
+                </p>
+              </div>
+            )}
+          </div>
         </Alert>
       ) : (
         <Alert variant="success" title="Callback Received">
@@ -86,7 +100,7 @@ function CallbackContent() {
           </div>
         </Alert>
       )}
-  
+
       <Card title="Callback Parameters" className="mt-6">
         <CodeBlock code={JSON.stringify(params, null, 2)} language="json" />
       </Card>
@@ -118,7 +132,7 @@ function CallbackContent() {
       {!error && params.code && (
         <div className="mt-6 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
           <p className="text-sm text-gray-700 dark:text-gray-300">
-            <strong>💡 Tip:</strong> Click &quot;Next Step&quot; to automatically send this authorization code 
+            <strong>💡 Tip:</strong> Click &quot;Next Step&quot; to automatically send this authorization code
             to the OIDC flow page for token exchange. The window will close automatically after sending.
           </p>
         </div>

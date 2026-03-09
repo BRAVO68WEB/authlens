@@ -23,6 +23,8 @@ export default function OIDCFlowPage() {
   const [responseType, setResponseType] = useState<OIDCResponseType>('code');
   const [usePKCE, setUsePKCE] = useState(true);
   const [scope, setScope] = useState('openid profile email');
+  const [redirectUri, setRedirectUri] = useState(selectedProvider?.redirectUris[0] || '');
+  const [prompt, setPrompt] = useState('');
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [authUrl, setAuthUrl] = useState('');
   const [state, setState] = useState('');
@@ -49,24 +51,27 @@ export default function OIDCFlowPage() {
     setLogs((prev) => [...prev, log]);
   };
 
+  // Sync redirectUri when provider changes
+  useEffect(() => {
+    if (selectedProvider?.redirectUris[0]) {
+      setRedirectUri(selectedProvider.redirectUris[0]);
+    }
+  }, [selectedProvider?.id]);
+
   // Listen for callback messages from popup
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
       if (event.data?.type === 'oidc_callback') {
-        const { code, receivedState, error } = event.data;
-        
+        const { code, state: receivedState, error } = event.data;
+
         if (error) {
           addLog(logError('Authorization failed', { error }));
           return;
         }
-        
+
         if (code && receivedState === state) {
           setAuthCode(code);
           addLog(logInfo('Authorization code received from callback', { code: '***' }));
-          // Automatically trigger token exchange
-          setTimeout(() => {
-            handleExchangeCode(code);
-          }, 500);
         } else if (receivedState !== state) {
           addLog(logError('State mismatch - possible CSRF attack'));
         }
@@ -104,10 +109,11 @@ export default function OIDCFlowPage() {
       const result = await buildAuthorizationUrl({
         authorizationEndpoint: selectedProvider.endpoints.authorizationUrl,
         clientId: selectedProvider.clientId!,
-        redirectUri: selectedProvider.redirectUris[0],
+        redirectUri,
         scope,
         responseType,
         usePKCE: usePKCE && responseType.includes('code'),
+        prompt: prompt || undefined,
       });
 
       setAuthUrl(result.url);
@@ -120,12 +126,13 @@ export default function OIDCFlowPage() {
           url: result.url,
           state: result.state,
           pkce: usePKCE,
+          prompt: prompt || '(not set)',
         })
       );
 
       // Open in new window with callback listener
       const popup = window.open(result.url, '_blank', 'width=600,height=800');
-      
+
       // Poll for popup closure
       const checkPopup = setInterval(() => {
         if (popup && popup.closed) {
@@ -143,7 +150,7 @@ export default function OIDCFlowPage() {
 
   const handleExchangeCode = async (code?: string) => {
     const codeToExchange = code || authCode;
-    
+
     if (!selectedProvider || !codeToExchange) {
       alert('Please enter the authorization code');
       return;
@@ -164,7 +171,7 @@ export default function OIDCFlowPage() {
         code: codeToExchange,
         clientId: selectedProvider.clientId!,
         clientSecret: selectedProvider.clientSecret,
-        redirectUri: selectedProvider.redirectUris[0],
+        redirectUri,
         codeVerifier: usePKCE ? codeVerifier : undefined,
       });
 
@@ -219,7 +226,7 @@ export default function OIDCFlowPage() {
         if (accessParsed && accessParsed.payload) {
           setAccessTokenClaims(accessParsed.payload);
           addLog(logInfo('Access token decoded (JWT format)', { claims: Object.keys(accessParsed.payload as object) }));
-          
+
           // Validate access token if it's a JWT
           if (selectedProvider.endpoints.jwksUrl) {
             try {
@@ -378,13 +385,23 @@ export default function OIDCFlowPage() {
 
   return (
     <div className="p-8 max-w-7xl mx-auto">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-2">
-          OIDC Flow Runner
-        </h1>
-        <p className="text-gray-600 dark:text-gray-400">
-          Test OpenID Connect authentication flows with {selectedProvider.name}
-        </p>
+      <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-2">
+            OIDC Flow Runner
+          </h1>
+          <p className="text-gray-600 dark:text-gray-400">
+            Test OpenID Connect authentication flows with {selectedProvider.name}
+          </p>
+        </div>
+        <Button
+          variant="secondary"
+          className="flex items-center gap-2"
+          onClick={() => window.open('https://www.loginradius.com/docs/single-sign-on/federated-sso/openid-connect/overview/', '_blank')}
+        >
+          <ExternalLink className="w-4 h-4" />
+          View Documentation
+        </Button>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -429,6 +446,36 @@ export default function OIDCFlowPage() {
                 onChange={(e) => setScope(e.target.value)}
                 placeholder="openid profile email"
               />
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Redirect URI
+                </label>
+                <p className="px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-800/50 text-gray-900 dark:text-gray-100 text-sm font-mono break-all">
+                  {redirectUri || 'Not configured'}
+                </p>
+              </div>
+
+              {/* Prompt Parameter */}
+              <Select
+                label="Prompt"
+                value={prompt}
+                onChange={(e) => setPrompt(e.target.value)}
+                options={[
+                  { value: '', label: '(not set)' },
+                  { value: 'none', label: 'none — No UI, error if login/consent needed' },
+                  { value: 'login', label: 'login — Force reauthentication' },
+                  { value: 'consent', label: 'consent — Force consent screen' },
+                  { value: 'login consent', label: 'login consent — Force both' },
+                ]}
+              />
+              {prompt === 'none' && (
+                <Alert variant="warning">
+                  <strong>prompt=none</strong>: The IdP will return an error
+                  if the user is not already authenticated or consent is not
+                  pre-configured.
+                </Alert>
+              )}
 
               {responseType.includes('code') && (
                 <div className="flex items-center gap-2">
@@ -513,42 +560,38 @@ export default function OIDCFlowPage() {
                 <div className="flex gap-2 border-b border-gray-200 dark:border-gray-700">
                   <button
                     onClick={() => setActiveTab('tokens')}
-                    className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
-                      activeTab === 'tokens'
-                        ? 'border-blue-500 text-blue-600 dark:text-blue-400'
-                        : 'border-transparent text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
-                    }`}
+                    className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${activeTab === 'tokens'
+                      ? 'border-blue-500 text-blue-600 dark:text-blue-400'
+                      : 'border-transparent text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
+                      }`}
                   >
                     Tokens
                   </button>
                   <button
                     onClick={() => setActiveTab('claims')}
-                    className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
-                      activeTab === 'claims'
-                        ? 'border-blue-500 text-blue-600 dark:text-blue-400'
-                        : 'border-transparent text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
-                    }`}
+                    className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${activeTab === 'claims'
+                      ? 'border-blue-500 text-blue-600 dark:text-blue-400'
+                      : 'border-transparent text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
+                      }`}
                   >
                     Claims
                   </button>
                   <button
                     onClick={() => setActiveTab('userinfo')}
-                    className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
-                      activeTab === 'userinfo'
-                        ? 'border-blue-500 text-blue-600 dark:text-blue-400'
-                        : 'border-transparent text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
-                    }`}
+                    className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${activeTab === 'userinfo'
+                      ? 'border-blue-500 text-blue-600 dark:text-blue-400'
+                      : 'border-transparent text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
+                      }`}
                   >
                     UserInfo
                   </button>
                   {selectedProvider.endpoints.introspectionUrl && (
                     <button
                       onClick={() => setActiveTab('introspect')}
-                      className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
-                        activeTab === 'introspect'
-                          ? 'border-blue-500 text-blue-600 dark:text-blue-400'
-                          : 'border-transparent text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
-                      }`}
+                      className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${activeTab === 'introspect'
+                        ? 'border-blue-500 text-blue-600 dark:text-blue-400'
+                        : 'border-transparent text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
+                        }`}
                     >
                       Introspection
                     </button>
@@ -609,7 +652,7 @@ export default function OIDCFlowPage() {
                         <CodeBlock code={tokens.refresh_token} maxHeight="120px" />
                       </div>
                     )}
-                    
+
                     <div className="flex gap-2 pt-4 border-t">
                       {selectedProvider.endpoints.userinfoUrl && (
                         <Button onClick={handleFetchUserInfo} loading={loading} size="sm">
@@ -654,7 +697,7 @@ export default function OIDCFlowPage() {
                         </div>
                       </div>
                     )}
-                    
+
                     {accessTokenClaims && (
                       <div>
                         <h4 className="font-semibold text-gray-900 dark:text-gray-100 mb-3">

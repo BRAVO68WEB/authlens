@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { Sidebar } from "@/components/Sidebar";
 import { Header } from "@/components/Header";
+import { AppThemeProvider } from "@/components/ThemeProvider";
 
 export const metadata: Metadata = {
   title: "AuthLens - Auth Playground & Debugger",
@@ -16,15 +17,17 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className="antialiased">
-        <div className="flex min-h-screen bg-gray-50 dark:bg-gray-900">
-          <Sidebar />
-          <div className="flex-1 flex flex-col">
-            <Header />
-            <main className="flex-1 overflow-auto">
-              {children}
-            </main>
+        <AppThemeProvider>
+          <div className="flex min-h-screen bg-background text-foreground transition-colors duration-200">
+            <Sidebar />
+            <div className="flex-1 flex flex-col">
+              <Header />
+              <main className="flex-1 overflow-auto bg-bg-secondary">
+                {children}
+              </main>
+            </div>
           </div>
-        </div>
+        </AppThemeProvider>
       </body>
     </html>
   );

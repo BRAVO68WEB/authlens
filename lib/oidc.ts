@@ -24,11 +24,11 @@ export async function fetchDiscoveryDocument(
   discoveryUrl: string
 ): Promise<OIDCDiscoveryDocument> {
   const response = await fetch(discoveryUrl);
-  
+
   if (!response.ok) {
     throw new Error(`Failed to fetch discovery document: ${response.statusText}`);
   }
-  
+
   return response.json();
 }
 
@@ -39,7 +39,7 @@ export async function discoverFromIssuer(issuer: string): Promise<OIDCDiscoveryD
   const discoveryUrl = issuer.endsWith('/')
     ? `${issuer}.well-known/openid-configuration`
     : `${issuer}/.well-known/openid-configuration`;
-  
+
   return fetchDiscoveryDocument(discoveryUrl);
 }
 
@@ -72,15 +72,15 @@ export async function buildAuthorizationUrl(params: {
   const nonce = params.responseType?.includes('id_token')
     ? params.nonce || generateRandomString()
     : undefined;
-  
+
   let codeVerifier: string | undefined;
   let codeChallenge = params.codeChallenge;
-  
+
   if (params.usePKCE && params.responseType?.includes('code')) {
     codeVerifier = generateCodeVerifier();
     codeChallenge = await generateCodeChallenge(codeVerifier);
   }
-  
+
   const queryParams: Record<string, string | undefined> = {
     client_id: params.clientId,
     redirect_uri: params.redirectUri,
@@ -97,10 +97,10 @@ export async function buildAuthorizationUrl(params: {
     }),
     ...params.extraParams,
   };
-  
+
   const query = buildQueryString(queryParams);
   const url = `${params.authorizationEndpoint}?${query}`;
-  
+
   return {
     url,
     state,
@@ -128,18 +128,18 @@ export async function exchangeCode(params: {
     redirect_uri: params.redirectUri,
     client_id: params.clientId,
   };
-  
+
   if (params.codeVerifier) {
     body.code_verifier = params.codeVerifier;
   }
-  
+
   const headers: Record<string, string> = {
     'Content-Type': 'application/x-www-form-urlencoded',
   };
-  
+
   // Handle client authentication
   const authMethod = params.clientAuthMethod || 'client_secret_basic';
-  
+
   if (params.clientSecret) {
     if (authMethod === 'client_secret_basic') {
       const credentials = btoa(`${params.clientId}:${params.clientSecret}`);
@@ -148,20 +148,20 @@ export async function exchangeCode(params: {
       body.client_secret = params.clientSecret;
     }
   }
-  
+
   const response = await fetch(params.tokenEndpoint, {
     method: 'POST',
     headers,
     body: objectToFormData(body).toString(),
   });
-  
+
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
     throw new Error(
       `Token exchange failed: ${errorData.error_description || errorData.error || response.statusText}`
     );
   }
-  
+
   return response.json();
 }
 
@@ -177,11 +177,11 @@ export async function fetchUserInfo(
       Authorization: `Bearer ${accessToken}`,
     },
   });
-  
+
   if (!response.ok) {
     throw new Error(`Failed to fetch user info: ${response.statusText}`);
   }
-  
+
   return response.json();
 }
 
@@ -199,30 +199,30 @@ export async function introspectToken(params: {
     token: params.token,
     client_id: params.clientId,
   };
-  
+
   if (params.tokenTypeHint) {
     body.token_type_hint = params.tokenTypeHint;
   }
-  
+
   const headers: Record<string, string> = {
     'Content-Type': 'application/x-www-form-urlencoded',
   };
-  
+
   if (params.clientSecret) {
     const credentials = btoa(`${params.clientId}:${params.clientSecret}`);
     headers['Authorization'] = `Basic ${credentials}`;
   }
-  
+
   const response = await fetch(params.introspectionEndpoint, {
     method: 'POST',
     headers,
     body: objectToFormData(body).toString(),
   });
-  
+
   if (!response.ok) {
     throw new Error(`Token introspection failed: ${response.statusText}`);
   }
-  
+
   return response.json();
 }
 
@@ -240,26 +240,26 @@ export async function revokeToken(params: {
     token: params.token,
     client_id: params.clientId,
   };
-  
+
   if (params.tokenTypeHint) {
     body.token_type_hint = params.tokenTypeHint;
   }
-  
+
   const headers: Record<string, string> = {
     'Content-Type': 'application/x-www-form-urlencoded',
   };
-  
+
   if (params.clientSecret) {
     const credentials = btoa(`${params.clientId}:${params.clientSecret}`);
     headers['Authorization'] = `Basic ${credentials}`;
   }
-  
+
   const response = await fetch(params.revocationEndpoint, {
     method: 'POST',
     headers,
     body: objectToFormData(body).toString(),
   });
-  
+
   if (!response.ok) {
     throw new Error(`Token revocation failed: ${response.statusText}`);
   }
@@ -280,33 +280,33 @@ export async function refreshAccessToken(params: {
     refresh_token: params.refreshToken,
     client_id: params.clientId,
   };
-  
+
   if (params.scope) {
     body.scope = params.scope;
   }
-  
+
   const headers: Record<string, string> = {
     'Content-Type': 'application/x-www-form-urlencoded',
   };
-  
+
   if (params.clientSecret) {
     const credentials = btoa(`${params.clientId}:${params.clientSecret}`);
     headers['Authorization'] = `Basic ${credentials}`;
   }
-  
+
   const response = await fetch(params.tokenEndpoint, {
     method: 'POST',
     headers,
     body: objectToFormData(body).toString(),
   });
-  
+
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
     throw new Error(
       `Token refresh failed: ${errorData.error_description || errorData.error || response.statusText}`
     );
   }
-  
+
   return response.json();
 }
 
@@ -328,11 +328,11 @@ export async function startDeviceCodeFlow(params: {
   const body: Record<string, string> = {
     client_id: params.clientId,
   };
-  
+
   if (params.scope) {
     body.scope = params.scope;
   }
-  
+
   const response = await fetch(params.deviceAuthorizationEndpoint, {
     method: 'POST',
     headers: {
@@ -340,14 +340,14 @@ export async function startDeviceCodeFlow(params: {
     },
     body: objectToFormData(body).toString(),
   });
-  
+
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
     throw new Error(
       `Device authorization failed: ${errorData.error_description || errorData.error || response.statusText}`
     );
   }
-  
+
   return response.json();
 }
 
@@ -368,7 +368,7 @@ export async function pollDeviceCode(params: {
     device_code: params.deviceCode,
     client_id: params.clientId,
   };
-  
+
   const response = await fetch(params.tokenEndpoint, {
     method: 'POST',
     headers: {
@@ -376,22 +376,22 @@ export async function pollDeviceCode(params: {
     },
     body: objectToFormData(body).toString(),
   });
-  
+
   if (response.ok) {
     const tokens = await response.json();
     return { status: 'complete', tokens };
   }
-  
+
   const errorData = await response.json().catch(() => ({}));
-  
+
   if (errorData.error === 'authorization_pending') {
     return { status: 'pending' };
   }
-  
+
   if (errorData.error === 'slow_down') {
     return { status: 'slow_down', interval: errorData.interval };
   }
-  
+
   return {
     status: 'error',
     error: errorData.error || 'unknown_error',
@@ -418,22 +418,35 @@ export function validateCallback(params: {
 } {
   const errors: string[] = [];
   const { callbackParams, expectedState } = params;
-  
+
   // Check for error response
   if (callbackParams.error) {
+    const promptErrors = [
+      'login_required',
+      'consent_required',
+      'interaction_required',
+      'account_selection_required',
+    ];
+    const isPromptError = promptErrors.includes(callbackParams.error);
+
     return {
       valid: false,
-      errors: [`Authorization error: ${callbackParams.error}`],
+      errors: [
+        `Authorization error: ${callbackParams.error}`,
+        ...(isPromptError
+          ? ['This error is likely caused by the prompt parameter setting. Check the prompt value used in the authorization request.']
+          : []),
+      ],
       error: callbackParams.error,
       errorDescription: callbackParams.error_description,
     };
   }
-  
+
   // Validate state
   if (expectedState && callbackParams.state !== expectedState) {
     errors.push('State mismatch - possible CSRF attack');
   }
-  
+
   return {
     valid: errors.length === 0,
     errors,
@@ -450,12 +463,12 @@ export function validateCallback(params: {
 export function parseCallback(url: string): Record<string, string> {
   const urlObj = new URL(url);
   const params: Record<string, string> = {};
-  
+
   // Check query params (for response_mode=query)
   urlObj.searchParams.forEach((value, key) => {
     params[key] = value;
   });
-  
+
   // Check hash fragment (for implicit/hybrid flows)
   if (urlObj.hash) {
     const hashParams = new URLSearchParams(urlObj.hash.substring(1));
@@ -463,7 +476,7 @@ export function parseCallback(url: string): Record<string, string> {
       params[key] = value;
     });
   }
-  
+
   return params;
 }
 
