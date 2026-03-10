@@ -22,7 +22,7 @@ import {
 import { generateRandomString, generateCodeVerifier, generateCodeChallenge, parseJWT } from '@/lib/utils';
 import { logInfo, logError } from '@/lib/logging';
 import type { LogEntry } from '@/lib/types';
-import { Play, RefreshCw, Key, Monitor, Copy, Trash2, Eye } from 'lucide-react';
+import { Play, RefreshCw, Key, Monitor, Copy, Trash2, Eye, ExternalLink } from 'lucide-react';
 
 type GrantType = 'authorization_code' | 'implicit' | 'password' | 'client_credentials' | 'device_code';
 
@@ -40,11 +40,17 @@ export default function OAuth2FlowPage() {
   const [codeVerifier, setCodeVerifier] = useState('');
   const [authCode, setAuthCode] = useState('');
   const [usePKCE, setUsePKCE] = useState(true);
-  
+  const [redirectUri, setRedirectUri] = useState(selectedProvider?.redirectUris[0] || '');
+  const [localClientId, setLocalClientId] = useState(selectedProvider?.clientId || '');
+  const [localClientSecret, setLocalClientSecret] = useState(selectedProvider?.clientSecret || '');
+  const [localTokenEndpoint, setLocalTokenEndpoint] = useState(selectedProvider?.endpoints.tokenUrl || '');
+
   // Password grant
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  
+  const [audience, setAudience] = useState('');
+  const [resource, setResource] = useState('');
+
   // Device code flow
   const [deviceCode, setDeviceCode] = useState('');
   const [userCode, setUserCode] = useState('');
@@ -52,9 +58,10 @@ export default function OAuth2FlowPage() {
   const [verificationUriComplete, setVerificationUriComplete] = useState('');
   const [interval, setInterval] = useState(5);
   const [polling, setPolling] = useState(false);
-  
+
   // Common
   const [scope, setScope] = useState('profile email');
+  const [prompt, setPrompt] = useState('');
   const [tokens, setTokens] = useState<{
     access_token?: string;
     token_type?: string;
@@ -73,12 +80,11 @@ export default function OAuth2FlowPage() {
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
       if (event.data?.type === 'oauth2_callback') {
-        const { code, receivedState } = event.data;
-        
+        const { code, state: receivedState } = event.data;
+
         if (code && receivedState === state) {
           setAuthCode(code);
           addLog(logInfo('Authorization code received from callback'));
-          setTimeout(() => handleExchangeCode(code), 500);
         } else if (receivedState !== state) {
           addLog(logError('State mismatch - possible CSRF attack'));
         }
@@ -88,6 +94,12 @@ export default function OAuth2FlowPage() {
     window.addEventListener('message', handleMessage);
     return () => window.removeEventListener('message', handleMessage);
   }, [state]);
+
+  useEffect(() => {
+    if (selectedProvider?.redirectUris[0]) {
+      setRedirectUri(selectedProvider.redirectUris[0]);
+    }
+  }, [selectedProvider?.id]);
 
   const handleAuthorizationCode = async () => {
     if (!selectedProvider?.endpoints.authorizationUrl) {
@@ -122,12 +134,13 @@ export default function OAuth2FlowPage() {
         scope,
         state: newState,
         responseType: 'code',
+        prompt: prompt || undefined,
         codeChallenge: challenge,
         codeChallengeMethod: 'S256',
       });
 
       setAuthUrl(url);
-      addLog(logInfo('Authorization URL generated', { url }));
+      addLog(logInfo('Authorization URL generated', { url, prompt: prompt || '(not set)' }));
 
       window.open(url, '_blank', 'width=600,height=800');
     } catch (error) {
@@ -139,7 +152,7 @@ export default function OAuth2FlowPage() {
 
   const handleExchangeCode = async (code?: string) => {
     const codeToExchange = code || authCode;
-    
+
     if (!selectedProvider?.endpoints.tokenUrl || !codeToExchange) {
       alert('Missing token URL or authorization code');
       return;
@@ -300,7 +313,7 @@ export default function OAuth2FlowPage() {
 
     const poll = async () => {
       if (!isActive) return;
-      
+
       try {
         const result = await pollDeviceToken({
           tokenEndpoint: selectedProvider.endpoints.tokenUrl!,
@@ -315,7 +328,7 @@ export default function OAuth2FlowPage() {
           setTokens(result.tokens!);
           setPolling(false);
           addLog(logInfo('Device authorization completed - tokens received'));
-          
+
           const parsed = parseJWT(result.tokens!.access_token);
           if (parsed) setTokenClaims(parsed.payload);
         } else if (result.status === 'slow_down') {
@@ -334,7 +347,7 @@ export default function OAuth2FlowPage() {
     };
 
     poll(); // Initial poll
-    
+
     const pollInterval = window.setInterval(poll, currentInterval);
 
     return () => {
@@ -444,13 +457,23 @@ export default function OAuth2FlowPage() {
 
   return (
     <div className="p-8 max-w-7xl mx-auto">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-2">
-          OAuth 2.0 Flow Runner
-        </h1>
-        <p className="text-gray-600 dark:text-gray-400">
-          Test OAuth 2.0 authentication flows with {selectedProvider.name}
-        </p>
+      <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-2">
+            OAuth 2.0 Flow Runner
+          </h1>
+          <p className="text-gray-600 dark:text-gray-400">
+            Test OAuth 2.0 authentication flows with {selectedProvider.name}
+          </p>
+        </div>
+        <Button
+          variant="secondary"
+          className="flex items-center gap-2"
+          onClick={() => window.open('https://www.loginradius.com/docs/single-sign-on/federated-sso/oauth-2.0/overview/', '_blank')}
+        >
+          <ExternalLink className="w-4 h-4" />
+          View Documentation
+        </Button>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -479,9 +502,38 @@ export default function OAuth2FlowPage() {
                 />
               )}
 
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Redirect URI
+                </label>
+                <p className="px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-800/50 text-gray-900 dark:text-gray-100 text-sm font-mono break-all">
+                  {redirectUri || 'Not configured'}
+                </p>
+              </div>
+
               {/* Authorization Code Flow */}
               {grantType === 'authorization_code' && (
                 <>
+                  {/* Prompt Parameter */}
+                  <Select
+                    label="Prompt"
+                    value={prompt}
+                    onChange={(e) => setPrompt(e.target.value)}
+                    options={[
+                      { value: '', label: '(not set)' },
+                      { value: 'none', label: 'none — No UI, error if login/consent needed' },
+                      { value: 'login', label: 'login — Force reauthentication' },
+                      { value: 'consent', label: 'consent — Force consent screen' },
+                      { value: 'login consent', label: 'login consent — Force both' },
+                    ]}
+                  />
+                  {prompt === 'none' && (
+                    <Alert variant="warning">
+                      <strong>prompt=none</strong>: The IdP will return an error if the
+                      user is not already authenticated or consent is not pre-configured.
+                    </Alert>
+                  )}
+
                   <div className="flex items-center gap-2">
                     <input
                       type="checkbox"
@@ -621,7 +673,7 @@ export default function OAuth2FlowPage() {
                 {tokens.expires_in && (
                   <p className="text-sm text-gray-600">Expires in: {tokens.expires_in} seconds</p>
                 )}
-                
+
                 {tokenClaims && (
                   <div>
                     <h4 className="font-semibold mb-2">Token Claims</h4>

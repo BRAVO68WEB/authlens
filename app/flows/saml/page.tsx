@@ -18,7 +18,7 @@ import {
 } from '@/lib/saml';
 import { logInfo, logError } from '@/lib/logging';
 import type { LogEntry, SAMLAssertion, SAMLValidationResult } from '@/lib/types';
-import { Play, FileText, Check, X } from 'lucide-react';
+import { Play, FileText, Check, X, ExternalLink } from 'lucide-react';
 
 export default function SAMLFlowPage() {
   const { providers, selectedProviderId } = useStore();
@@ -50,20 +50,20 @@ export default function SAMLFlowPage() {
   useEffect(() => {
     const storedResponse = sessionStorage.getItem('saml_response');
     const storedRelayState = sessionStorage.getItem('saml_relay_state');
-    
+
     if (storedResponse) {
       setSamlResponse(storedResponse);
       if (storedRelayState) {
         setRelayState(storedRelayState);
       }
-      
+
       // Auto-parse the response
       handleParseSAMLResponse(storedResponse);
-      
+
       // Clear from sessionStorage
       sessionStorage.removeItem('saml_response');
       sessionStorage.removeItem('saml_relay_state');
-      
+
       addLog(logInfo('SAML response loaded from callback'));
     }
   }, []);
@@ -80,7 +80,7 @@ export default function SAMLFlowPage() {
       addLog(logInfo('Building SAML AuthnRequest'));
 
       const issuer = selectedProvider.saml.entityId || selectedProvider.clientId || 'authlens-sp';
-      
+
       const authnRequest = buildAuthnRequest({
         issuer,
         assertionConsumerServiceUrl: selectedProvider.saml.assertionConsumerServiceUrl,
@@ -104,10 +104,10 @@ export default function SAMLFlowPage() {
       // Encode for HTTP-Redirect with proper raw deflate compression
       addLog(logInfo('Encoding AuthnRequest with raw deflate compression (SAML 2.0 compliant)'));
       const { encodeSAMLRequestAsync } = await import('@/lib/saml');
-      
+
       try {
         const encoded = await encodeSAMLRequestAsync(authnRequest.xml);
-        
+
         const url = buildSAMLRedirectUrl({
           ssoUrl: selectedProvider.saml.ssoUrl,
           samlRequest: encoded,
@@ -125,7 +125,7 @@ export default function SAMLFlowPage() {
           compression: 'pako (raw deflate)',
         }));
       } catch (encodeError) {
-        addLog(logError('Failed to encode AuthnRequest', { 
+        addLog(logError('Failed to encode AuthnRequest', {
           error: String(encodeError),
           xml: authnRequest.xml.substring(0, 200) + '...',
         }));
@@ -150,7 +150,7 @@ export default function SAMLFlowPage() {
 
   const handleParseSAMLResponse = (responseToUse?: string) => {
     const response = responseToUse || samlResponse;
-    
+
     if (!response) {
       alert('Please paste a SAML response');
       return;
@@ -214,13 +214,23 @@ export default function SAMLFlowPage() {
 
   return (
     <div className="p-8 max-w-7xl mx-auto">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-2">
-          SAML Flow Runner
-        </h1>
-        <p className="text-gray-600 dark:text-gray-400">
-          Test SAML 2.0 authentication flows with {selectedProvider.name}
-        </p>
+      <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-2">
+            SAML Flow Runner
+          </h1>
+          <p className="text-gray-600 dark:text-gray-400">
+            Test SAML 2.0 authentication flows with {selectedProvider.name}
+          </p>
+        </div>
+        <Button
+          variant="secondary"
+          className="flex items-center gap-2"
+          onClick={() => window.open('https://www.loginradius.com/docs/single-sign-on/federated-sso/saml/overview/', '_blank')}
+        >
+          <ExternalLink className="w-4 h-4" />
+          View Documentation
+        </Button>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -315,7 +325,7 @@ export default function SAMLFlowPage() {
               <Alert variant="info">
                 After authenticating with the IdP, paste the SAML response (base64 encoded) here to parse and validate it.
               </Alert>
-              
+
               <TextArea
                 label="SAML Response (Base64)"
                 value={samlResponse}

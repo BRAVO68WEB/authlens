@@ -26,6 +26,22 @@ export type GrantType =
 export type CodeChallengeMethod = 'plain' | 'S256';
 
 /**
+ * OIDC Prompt Values (per OIDC Core spec §3.1.2.1)
+ * Space-delimited, case-sensitive ASCII string values that specify whether
+ * the Authorization Server prompts the End-User for reauthentication and consent.
+ */
+export type OIDCPromptValue = 'none' | 'login' | 'consent' | 'select_account';
+
+/**
+ * OIDC Error Codes related to prompt parameter (per OIDC Core spec §3.1.2.6)
+ */
+export type OIDCPromptErrorCode =
+  | 'login_required'
+  | 'consent_required'
+  | 'interaction_required'
+  | 'account_selection_required';
+
+/**
  * LoginRadius Registration Form Field
  */
 export interface LoginRadiusRegistrationField {
@@ -89,14 +105,14 @@ export interface ProviderConfig {
   type: ProtocolType;
   baseUrl?: string;
   discoveryUrl?: string;
-  
+
   // OAuth/OIDC
   clientId?: string;
   clientSecret?: string;
   redirectUris: string[];
   scopes: string[];
   audience?: string;
-  
+
   // Endpoints
   endpoints: {
     authorizationUrl?: string;
@@ -108,7 +124,7 @@ export interface ProviderConfig {
     jwksUrl?: string;
     endSessionUrl?: string;
   };
-  
+
   // SAML
   saml?: {
     entityId?: string;
@@ -122,7 +138,7 @@ export interface ProviderConfig {
     signRequests?: boolean;
     wantAssertionsSigned?: boolean;
   };
-  
+
   // LoginRadius
   loginradius?: {
     apiKey?: string;
@@ -142,18 +158,18 @@ export interface ProviderConfig {
       Checked: boolean;
     }>;
   };
-  
+
   // Advanced
   advanced: {
     responseTypes?: string[];
     grantTypes?: GrantType[];
     codeChallengeMethod?: CodeChallengeMethod;
-    prompt?: string;
+    prompt?: OIDCPromptValue[];
     maxAge?: number;
     acrValues?: string[];
     clockSkew?: number; // seconds
   };
-  
+
   createdAt: string;
   updatedAt: string;
 }
@@ -236,20 +252,20 @@ export interface FlowArtifacts {
   expiresAt?: string;
   scope?: string;
   userInfo?: Record<string, unknown>;
-  
+
   // Device Code
   deviceCode?: string;
   userCode?: string;
   verificationUri?: string;
   verificationUriComplete?: string;
   interval?: number;
-  
+
   // SAML
   authnRequest?: string;
   samlResponse?: string;
   relayState?: string;
   assertions?: SAMLAssertion[];
-  
+
   // API
   apiResponse?: APIResponse;
 }
@@ -306,7 +322,7 @@ export interface JWK {
   x5c?: string[];
   x5t?: string;
   'x5t#S256'?: string;
-  
+
   // RSA
   n?: string;
   e?: string;
@@ -316,12 +332,12 @@ export interface JWK {
   dp?: string;
   dq?: string;
   qi?: string;
-  
+
   // EC
   crv?: string;
   x?: string;
   y?: string;
-  
+
   // Symmetric
   k?: string;
 }
