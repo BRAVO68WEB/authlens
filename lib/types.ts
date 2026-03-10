@@ -109,8 +109,8 @@ export interface ProviderConfig {
   // OAuth/OIDC
   clientId?: string;
   clientSecret?: string;
-  redirectUris: string[];
-  scopes: string[];
+  redirectUris?: string[];
+  scopes?: string[];
   audience?: string;
 
   // Endpoints
@@ -549,5 +549,56 @@ export interface IntrospectionResponse {
   iss?: string;
   jti?: string;
   [key: string]: unknown;
+}
+
+/**
+ * Enhanced Flow Types for Visualization
+ */
+export interface CapturedRequest {
+  method: string;
+  url: string;
+  headers: Record<string, string>;
+  body?: string;
+  queryParams?: Record<string, string>;
+  timestamp: number;
+}
+
+export interface CapturedResponse {
+  status: number;
+  statusText: string;
+  headers: Record<string, string>;
+  body?: string;
+  duration: number;
+  timestamp: number;
+}
+
+export interface NetworkLogEntry extends LogEntry {
+  stepId?: string;
+  protocol?: ProtocolType;
+  request?: CapturedRequest;
+  response?: CapturedResponse;
+  expandable?: boolean;
+}
+
+export interface TokenInspection {
+  raw: string;
+  parts: { header: string; payload: string; signature: string };
+  decoded: {
+    header: JWTHeader;
+    payload: JWTPayload;
+  };
+  validation?: JWTValidationResult;
+  timeline?: TokenTimelineData;
+}
+
+export interface TokenTimelineData {
+  iat?: number;
+  nbf?: number;
+  exp?: number;
+  now: number;
+  isValid: boolean;
+  isExpired: boolean;
+  isNotYetValid: boolean;
+  expiresIn?: number;
 }
 

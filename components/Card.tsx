@@ -1,4 +1,11 @@
 import { cn } from '@/lib/utils';
+import {
+  Card as ShadCard,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardContent,
+} from '@/components/ui/card';
 
 interface CardProps {
   children: React.ReactNode;
@@ -9,28 +16,14 @@ interface CardProps {
 
 export function Card({ children, className, title, description }: CardProps) {
   return (
-    <div
-      className={cn(
-        'bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm',
-        className
-      )}
-    >
+    <ShadCard className={cn('shadow-none', className)}>
       {(title || description) && (
-        <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
-          {title && (
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-              {title}
-            </h3>
-          )}
-          {description && (
-            <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-              {description}
-            </p>
-          )}
-        </div>
+        <CardHeader className="p-3 pb-0">
+          {title && <CardTitle className="text-sm font-semibold">{title}</CardTitle>}
+          {description && <CardDescription className="text-xs">{description}</CardDescription>}
+        </CardHeader>
       )}
-      <div className="p-6">{children}</div>
-    </div>
+      <CardContent className="p-3">{children}</CardContent>
+    </ShadCard>
   );
 }
-

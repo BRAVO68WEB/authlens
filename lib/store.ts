@@ -10,8 +10,20 @@ import type {
   RequestPreset,
   ClaimRuleSet,
   Workspace,
+  ProtocolType,
 } from './types';
 import { generateId, now } from './utils';
+
+/**
+ * Workspace Tab
+ */
+export interface WorkspaceTab {
+  id: string;
+  title: string;
+  path: string;
+  protocol?: ProtocolType;
+  closable: boolean;
+}
 
 /**
  * Store interface
@@ -25,7 +37,7 @@ interface AppStore {
   deleteProvider: (id: string) => void;
   selectProvider: (id: string | null) => void;
   getProvider: (id: string) => ProviderConfig | undefined;
-  
+
   // Flow runs
   flowRuns: FlowRun[];
   currentFlowRun: FlowRun | null;
@@ -34,31 +46,45 @@ interface AppStore {
   completeFlowRun: (id: string) => void;
   deleteFlowRun: (id: string) => void;
   setCurrentFlowRun: (run: FlowRun | null) => void;
-  
+
   // Request presets
   presets: RequestPreset[];
   addPreset: (preset: Omit<RequestPreset, 'id' | 'createdAt' | 'updatedAt'>) => void;
   updatePreset: (id: string, updates: Partial<RequestPreset>) => void;
   deletePreset: (id: string) => void;
   getPresetsByProvider: (providerId: string) => RequestPreset[];
-  
+
   // Claim rule sets
   claimRuleSets: ClaimRuleSet[];
   addClaimRuleSet: (ruleSet: Omit<ClaimRuleSet, 'id' | 'createdAt' | 'updatedAt'>) => void;
   updateClaimRuleSet: (id: string, updates: Partial<ClaimRuleSet>) => void;
   deleteClaimRuleSet: (id: string) => void;
-  
+
   // Workspace
   exportWorkspace: () => Workspace;
   importWorkspace: (workspace: Workspace) => void;
   clearWorkspace: () => void;
-  
+
   // UI state
   sidebarOpen: boolean;
   toggleSidebar: () => void;
   darkMode: boolean;
   toggleDarkMode: () => void;
+
+  // Workspace tabs
+  tabs: WorkspaceTab[];
+  activeTabId: string;
+  openTab: (tab: Omit<WorkspaceTab, 'id'>) => void;
+  closeTab: (id: string) => void;
+  setActiveTab: (id: string) => void;
 }
+
+const DASHBOARD_TAB: WorkspaceTab = {
+  id: 'dashboard',
+  title: 'Dashboard',
+  path: '/',
+  closable: false,
+};
 
 /**
  * Create the store
@@ -74,13 +100,19 @@ export const useStore = create<AppStore>()(
       presets: [],
       claimRuleSets: [],
       sidebarOpen: true,
-      darkMode: false,
-      
+      darkMode: true,
+
+      // Workspace tabs
+      tabs: [DASHBOARD_TAB],
+      activeTabId: 'dashboard',
+
       // Provider actions
       addProvider: (provider) => {
         const newProvider: ProviderConfig = {
           ...provider,
           id: generateId(),
+          redirectUris: provider.redirectUris || [],
+          scopes: provider.scopes || [],
           createdAt: now(),
           updatedAt: now(),
         };
@@ -88,7 +120,7 @@ export const useStore = create<AppStore>()(
           providers: [...state.providers, newProvider],
         }));
       },
-      
+
       updateProvider: (id, updates) => {
         set((state) => ({
           providers: state.providers.map((p) =>
@@ -96,7 +128,7 @@ export const useStore = create<AppStore>()(
           ),
         }));
       },
-      
+
       deleteProvider: (id) => {
         set((state) => ({
           providers: state.providers.filter((p) => p.id !== id),
@@ -104,15 +136,15 @@ export const useStore = create<AppStore>()(
             state.selectedProviderId === id ? null : state.selectedProviderId,
         }));
       },
-      
+
       selectProvider: (id) => {
         set({ selectedProviderId: id });
       },
-      
+
       getProvider: (id) => {
         return get().providers.find((p) => p.id === id);
       },
-      
+
       // Flow run actions
       startFlowRun: (run) => {
         const newRun: FlowRun = {
@@ -125,7 +157,7 @@ export const useStore = create<AppStore>()(
           currentFlowRun: newRun,
         }));
       },
-      
+
       updateFlowRun: (id, updates) => {
         set((state) => ({
           flowRuns: state.flowRuns.map((r) =>
@@ -137,7 +169,7 @@ export const useStore = create<AppStore>()(
               : state.currentFlowRun,
         }));
       },
-      
+
       completeFlowRun: (id) => {
         set((state) => ({
           flowRuns: state.flowRuns.map((r) =>
@@ -147,7 +179,7 @@ export const useStore = create<AppStore>()(
           ),
         }));
       },
-      
+
       deleteFlowRun: (id) => {
         set((state) => ({
           flowRuns: state.flowRuns.filter((r) => r.id !== id),
@@ -155,11 +187,11 @@ export const useStore = create<AppStore>()(
             state.currentFlowRun?.id === id ? null : state.currentFlowRun,
         }));
       },
-      
+
       setCurrentFlowRun: (run) => {
         set({ currentFlowRun: run });
       },
-      
+
       // Preset actions
       addPreset: (preset) => {
         const newPreset: RequestPreset = {
@@ -172,7 +204,7 @@ export const useStore = create<AppStore>()(
           presets: [...state.presets, newPreset],
         }));
       },
-      
+
       updatePreset: (id, updates) => {
         set((state) => ({
           presets: state.presets.map((p) =>
@@ -180,17 +212,17 @@ export const useStore = create<AppStore>()(
           ),
         }));
       },
-      
+
       deletePreset: (id) => {
         set((state) => ({
           presets: state.presets.filter((p) => p.id !== id),
         }));
       },
-      
+
       getPresetsByProvider: (providerId) => {
         return get().presets.filter((p) => p.providerId === providerId);
       },
-      
+
       // Claim rule set actions
       addClaimRuleSet: (ruleSet) => {
         const newRuleSet: ClaimRuleSet = {
@@ -203,7 +235,7 @@ export const useStore = create<AppStore>()(
           claimRuleSets: [...state.claimRuleSets, newRuleSet],
         }));
       },
-      
+
       updateClaimRuleSet: (id, updates) => {
         set((state) => ({
           claimRuleSets: state.claimRuleSets.map((rs) =>
@@ -211,13 +243,13 @@ export const useStore = create<AppStore>()(
           ),
         }));
       },
-      
+
       deleteClaimRuleSet: (id) => {
         set((state) => ({
           claimRuleSets: state.claimRuleSets.filter((rs) => rs.id !== id),
         }));
       },
-      
+
       // Workspace actions
       exportWorkspace: () => {
         const state = get();
@@ -230,7 +262,7 @@ export const useStore = create<AppStore>()(
           exportedAt: now(),
         };
       },
-      
+
       importWorkspace: (workspace) => {
         set({
           providers: workspace.providers || [],
@@ -238,7 +270,7 @@ export const useStore = create<AppStore>()(
           claimRuleSets: workspace.claimRuleSets || [],
         });
       },
-      
+
       clearWorkspace: () => {
         set({
           providers: [],
@@ -249,19 +281,50 @@ export const useStore = create<AppStore>()(
           claimRuleSets: [],
         });
       },
-      
+
       // UI actions
       toggleSidebar: () => {
         set((state) => ({ sidebarOpen: !state.sidebarOpen }));
       },
-      
+
       toggleDarkMode: () => {
         set((state) => ({ darkMode: !state.darkMode }));
+      },
+
+      // Workspace tab actions
+      openTab: (tab) => {
+        const state = get();
+        const existing = state.tabs.find((t) => t.path === tab.path);
+        if (existing) {
+          set({ activeTabId: existing.id });
+          return;
+        }
+        const newTab: WorkspaceTab = { ...tab, id: generateId() };
+        set((state) => ({
+          tabs: [...state.tabs, newTab],
+          activeTabId: newTab.id,
+        }));
+      },
+
+      closeTab: (id) => {
+        const state = get();
+        const tab = state.tabs.find((t) => t.id === id);
+        if (!tab || !tab.closable) return;
+
+        const newTabs = state.tabs.filter((t) => t.id !== id);
+        const newActiveTabId =
+          state.activeTabId === id
+            ? newTabs[newTabs.length - 1]?.id || 'dashboard'
+            : state.activeTabId;
+        set({ tabs: newTabs, activeTabId: newActiveTabId });
+      },
+
+      setActiveTab: (id) => {
+        set({ activeTabId: id });
       },
     }),
     {
       name: 'authlens-storage',
-      // Only persist these keys
       partialize: (state) => ({
         providers: state.providers,
         presets: state.presets,
@@ -269,8 +332,9 @@ export const useStore = create<AppStore>()(
         selectedProviderId: state.selectedProviderId,
         sidebarOpen: state.sidebarOpen,
         darkMode: state.darkMode,
+        tabs: state.tabs,
+        activeTabId: state.activeTabId,
       }),
     }
   )
 );
-

@@ -10,6 +10,7 @@ import { checkClaim } from '@/lib/jwt';
 import type { ClaimRule, ClaimRuleOperator } from '@/lib/types';
 import { Plus, Trash2, Play, CheckCircle, XCircle } from 'lucide-react';
 import { generateId, parseJWT } from '@/lib/utils';
+import { toast } from 'sonner';
 
 export default function ClaimsCheckerPage() {
   const [token, setToken] = useState('');
@@ -60,21 +61,21 @@ export default function ClaimsCheckerPage() {
   const handleParseSource = () => {
     try {
       let data;
-      
+
       if (sourceType === 'jwt') {
         if (!token) {
-          alert('Please paste a JWT token');
+          toast.warning('Please paste a JWT token');
           return;
         }
         const parsed = parseJWT(token);
         if (!parsed) {
-          alert('Invalid JWT format');
+          toast.error('Invalid JWT format');
           return;
         }
         data = parsed.payload;
       } else {
         if (!jsonData) {
-          alert('Please paste JSON data');
+          toast.warning('Please paste JSON data');
           return;
         }
         data = JSON.parse(jsonData);
@@ -82,18 +83,18 @@ export default function ClaimsCheckerPage() {
 
       setPayload(data);
     } catch (error) {
-      alert('Failed to parse: ' + String(error));
+      toast.error('Failed to parse: ' + String(error));
     }
   };
 
   const handleRunChecks = () => {
     if (!payload) {
-      alert('Please parse JWT or JSON data first');
+      toast.warning('Please parse JWT or JSON data first');
       return;
     }
 
     if (rules.length === 0) {
-      alert('Please add at least one rule');
+      toast.warning('Please add at least one rule');
       return;
     }
 
@@ -137,12 +138,12 @@ export default function ClaimsCheckerPage() {
   };
 
   return (
-    <div className="p-8 max-w-7xl mx-auto">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-2">
+    <div className="p-4 max-w-7xl mx-auto">
+      <div className="mb-4">
+        <h1 className="text-lg font-bold text-foreground mb-1">
           Claim Checker
         </h1>
-        <p className="text-gray-600 dark:text-gray-400">
+        <p className="text-xs text-muted-foreground">
           Validate JWT claims or JSON data with custom rules
         </p>
       </div>
@@ -196,7 +197,7 @@ export default function ClaimsCheckerPage() {
           <Card title="Validation Rules">
             <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-600 dark:text-gray-400">
+                <span className="text-xs text-muted-foreground">
                   {rules.length} rule(s)
                 </span>
                 <div className="flex gap-2">
@@ -211,18 +212,18 @@ export default function ClaimsCheckerPage() {
               </div>
 
               {rules.length === 0 ? (
-                <div className="text-center py-8 text-gray-500 dark:text-gray-400">
-                  No rules defined. Click "Add Rule" or "Load Common Rules" to get started.
+                <div className="text-center py-8 text-muted-foreground">
+                  No rules defined. Click &quot;Add Rule&quot; or &quot;Load Common Rules&quot; to get started.
                 </div>
               ) : (
                 <div className="space-y-4 max-h-[500px] overflow-y-auto">
                   {rules.map((rule, index) => (
                     <div
                       key={rule.id}
-                      className="p-4 border border-gray-200 dark:border-gray-700 rounded-lg space-y-3"
+                      className="p-4 border border-border rounded-lg space-y-3"
                     >
                       <div className="flex items-center justify-between">
-                        <span className="text-sm font-medium">Rule {index + 1}</span>
+                        <span className="text-xs font-medium">Rule {index + 1}</span>
                         <Button
                           size="sm"
                           variant="ghost"
@@ -297,25 +298,25 @@ export default function ClaimsCheckerPage() {
       {results.length > 0 && (
         <Card title="Validation Results" className="mt-6">
           <div className="space-y-3">
-            <div className="flex items-center gap-4 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
+            <div className="flex items-center gap-4 p-4 bg-muted rounded-lg">
               <div className="text-center">
-                <p className="text-2xl font-bold text-green-600 dark:text-green-400">
+                <p className="text-2xl font-bold text-status-success">
                   {results.filter((r) => r.passed).length}
                 </p>
-                <p className="text-sm text-gray-600 dark:text-gray-400">Passed</p>
+                <p className="text-xs text-muted-foreground">Passed</p>
               </div>
               <div className="text-center">
-                <p className="text-2xl font-bold text-red-600 dark:text-red-400">
+                <p className="text-2xl font-bold text-status-error">
                   {results.filter((r) => !r.passed).length}
                 </p>
-                <p className="text-sm text-gray-600 dark:text-gray-400">Failed</p>
+                <p className="text-xs text-muted-foreground">Failed</p>
               </div>
               <div className="flex-1 text-right">
                 <p className="text-lg font-medium">
                   {results.every((r) => r.passed) ? (
-                    <span className="text-green-600 dark:text-green-400">✓ All checks passed</span>
+                    <span className="text-status-success">All checks passed</span>
                   ) : (
-                    <span className="text-red-600 dark:text-red-400">✗ Some checks failed</span>
+                    <span className="text-status-error">Some checks failed</span>
                   )}
                 </p>
               </div>
@@ -332,21 +333,21 @@ export default function ClaimsCheckerPage() {
               >
                 <div className="flex items-start gap-3">
                   {result.passed ? (
-                    <CheckCircle className="w-5 h-5 text-green-600 dark:text-green-400 flex-shrink-0 mt-0.5" />
+                    <CheckCircle className="w-5 h-5 text-status-success flex-shrink-0 mt-0.5" />
                   ) : (
-                    <XCircle className="w-5 h-5 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
+                    <XCircle className="w-5 h-5 text-status-error flex-shrink-0 mt-0.5" />
                   )}
                   <div className="flex-1 min-w-0">
-                    <p className="font-medium text-gray-900 dark:text-gray-100 mb-1">
+                    <p className="font-medium text-foreground mb-1">
                       {result.claimPath} ({result.operator})
                     </p>
-                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                    <p className="text-xs text-muted-foreground mb-2">
                       {result.message}
                     </p>
                     {result.actualValue !== undefined && (
                       <div className="text-xs space-y-1">
                         <div className="flex gap-2">
-                          <span className="font-medium">Actual:</span>
+                          <span className="text-xs font-medium">Actual:</span>
                           <span className="font-mono break-all">
                             {typeof result.actualValue === 'object'
                               ? JSON.stringify(result.actualValue)
@@ -355,7 +356,7 @@ export default function ClaimsCheckerPage() {
                         </div>
                         {result.expectedValue !== undefined && (
                           <div className="flex gap-2">
-                            <span className="font-medium">Expected:</span>
+                            <span className="text-xs font-medium">Expected:</span>
                             <span className="font-mono break-all">
                               {typeof result.expectedValue === 'object'
                                 ? JSON.stringify(result.expectedValue)

@@ -8,6 +8,8 @@ import { Input, Select, TextArea } from '@/components/Input';
 import { Alert } from '@/components/Alert';
 import { CodeBlock } from '@/components/CodeBlock';
 import { LogViewer } from '@/components/LogViewer';
+import { Switch } from '@/components/ui/switch';
+import { JWTInspector } from '@/components/token/JWTInspector';
 import {
   buildOAuth2AuthorizationUrl,
   exchangeAuthorizationCode,
@@ -23,6 +25,7 @@ import { generateRandomString, generateCodeVerifier, generateCodeChallenge, pars
 import { logInfo, logError } from '@/lib/logging';
 import type { LogEntry } from '@/lib/types';
 import { Play, RefreshCw, Key, Monitor, Copy, Trash2, Eye, ExternalLink } from 'lucide-react';
+import { toast } from 'sonner';
 
 type GrantType = 'authorization_code' | 'implicit' | 'password' | 'client_credentials' | 'device_code';
 
@@ -40,7 +43,7 @@ export default function OAuth2FlowPage() {
   const [codeVerifier, setCodeVerifier] = useState('');
   const [authCode, setAuthCode] = useState('');
   const [usePKCE, setUsePKCE] = useState(true);
-  const [redirectUri, setRedirectUri] = useState(selectedProvider?.redirectUris[0] || '');
+  const [redirectUri, setRedirectUri] = useState(selectedProvider?.redirectUris?.[0] || '');
   const [localClientId, setLocalClientId] = useState(selectedProvider?.clientId || '');
   const [localClientSecret, setLocalClientSecret] = useState(selectedProvider?.clientSecret || '');
   const [localTokenEndpoint, setLocalTokenEndpoint] = useState(selectedProvider?.endpoints.tokenUrl || '');
@@ -96,14 +99,14 @@ export default function OAuth2FlowPage() {
   }, [state]);
 
   useEffect(() => {
-    if (selectedProvider?.redirectUris[0]) {
+    if (selectedProvider?.redirectUris?.[0]) {
       setRedirectUri(selectedProvider.redirectUris[0]);
     }
   }, [selectedProvider?.id]);
 
   const handleAuthorizationCode = async () => {
     if (!selectedProvider?.endpoints.authorizationUrl) {
-      alert('Provider is missing authorization URL');
+      toast.error('Provider is missing authorization URL');
       return;
     }
 
@@ -130,7 +133,7 @@ export default function OAuth2FlowPage() {
       const url = buildOAuth2AuthorizationUrl({
         authorizationEndpoint: selectedProvider.endpoints.authorizationUrl,
         clientId: selectedProvider.clientId!,
-        redirectUri: selectedProvider.redirectUris[0],
+        redirectUri: selectedProvider.redirectUris?.[0] || '',
         scope,
         state: newState,
         responseType: 'code',
@@ -154,7 +157,7 @@ export default function OAuth2FlowPage() {
     const codeToExchange = code || authCode;
 
     if (!selectedProvider?.endpoints.tokenUrl || !codeToExchange) {
-      alert('Missing token URL or authorization code');
+      toast.error('Missing token URL or authorization code');
       return;
     }
 
@@ -168,7 +171,7 @@ export default function OAuth2FlowPage() {
         code: codeToExchange,
         clientId: selectedProvider.clientId!,
         clientSecret: selectedProvider.clientSecret,
-        redirectUri: selectedProvider.redirectUris[0],
+        redirectUri: selectedProvider.redirectUris?.[0] || '',
         codeVerifier: usePKCE ? codeVerifier : undefined,
       });
 
@@ -190,12 +193,12 @@ export default function OAuth2FlowPage() {
 
   const handlePasswordGrant = async () => {
     if (!selectedProvider?.endpoints.tokenUrl) {
-      alert('Provider is missing token URL');
+      toast.error('Provider is missing token URL');
       return;
     }
 
     if (!username || !password) {
-      alert('Please enter username and password');
+      toast.warning('Please enter username and password');
       return;
     }
 
@@ -229,12 +232,12 @@ export default function OAuth2FlowPage() {
 
   const handleClientCredentials = async () => {
     if (!selectedProvider?.endpoints.tokenUrl) {
-      alert('Provider is missing token URL');
+      toast.error('Provider is missing token URL');
       return;
     }
 
     if (!selectedProvider.clientSecret) {
-      alert('Client credentials grant requires a client secret');
+      toast.error('Client credentials grant requires a client secret');
       return;
     }
 
@@ -266,7 +269,7 @@ export default function OAuth2FlowPage() {
 
   const handleStartDeviceCode = async () => {
     if (!selectedProvider?.endpoints.deviceCodeUrl) {
-      alert('Provider does not support device code flow');
+      toast.error('Provider does not support device code flow');
       return;
     }
 
@@ -358,7 +361,7 @@ export default function OAuth2FlowPage() {
 
   const handleRefreshToken = async () => {
     if (!selectedProvider?.endpoints.tokenUrl || !tokens.refresh_token) {
-      alert('Missing token URL or refresh token');
+      toast.error('Missing token URL or refresh token');
       return;
     }
 
@@ -389,7 +392,7 @@ export default function OAuth2FlowPage() {
 
   const handleIntrospect = async () => {
     if (!selectedProvider?.endpoints.introspectionUrl || !tokens.access_token) {
-      alert('Missing introspection URL or access token');
+      toast.error('Missing introspection URL or access token');
       return;
     }
 
@@ -416,7 +419,7 @@ export default function OAuth2FlowPage() {
 
   const handleRevoke = async () => {
     if (!selectedProvider?.endpoints.revocationUrl || !tokens.access_token) {
-      alert('Missing revocation URL or access token');
+      toast.error('Missing revocation URL or access token');
       return;
     }
 
@@ -447,7 +450,7 @@ export default function OAuth2FlowPage() {
 
   if (!selectedProvider) {
     return (
-      <div className="p-8 max-w-4xl mx-auto">
+      <div className="p-4 max-w-4xl mx-auto">
         <Alert variant="warning" title="No Provider Selected">
           Please select or configure an OAuth 2.0 provider first.
         </Alert>
@@ -456,13 +459,13 @@ export default function OAuth2FlowPage() {
   }
 
   return (
-    <div className="p-8 max-w-7xl mx-auto">
-      <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
+    <div className="p-4 max-w-7xl mx-auto">
+      <div className="flex flex-col md:flex-row md:items-center justify-between mb-4 gap-2">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-2">
+          <h1 className="text-lg font-bold text-foreground mb-1">
             OAuth 2.0 Flow Runner
           </h1>
-          <p className="text-gray-600 dark:text-gray-400">
+          <p className="text-xs text-muted-foreground">
             Test OAuth 2.0 authentication flows with {selectedProvider.name}
           </p>
         </div>
@@ -476,8 +479,8 @@ export default function OAuth2FlowPage() {
         </Button>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 space-y-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <div className="lg:col-span-2 space-y-4">
           <Card title="Flow Configuration">
             <div className="space-y-4">
               <Select
@@ -503,10 +506,10 @@ export default function OAuth2FlowPage() {
               )}
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                <label className="block text-xs font-medium text-muted-foreground mb-1">
                   Redirect URI
                 </label>
-                <p className="px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-800/50 text-gray-900 dark:text-gray-100 text-sm font-mono break-all">
+                <p className="px-3 py-2 rounded-lg border border-border bg-muted text-foreground text-xs font-mono break-all">
                   {redirectUri || 'Not configured'}
                 </p>
               </div>
@@ -535,14 +538,13 @@ export default function OAuth2FlowPage() {
                   )}
 
                   <div className="flex items-center gap-2">
-                    <input
-                      type="checkbox"
+                    <Switch
                       id="pkce"
+                      size="sm"
                       checked={usePKCE}
-                      onChange={(e) => setUsePKCE(e.target.checked)}
-                      className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
+                      onCheckedChange={(checked) => setUsePKCE(checked)}
                     />
-                    <label htmlFor="pkce" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                    <label htmlFor="pkce" className="text-xs font-medium text-muted-foreground">
                       Use PKCE (Recommended)
                     </label>
                   </div>
@@ -633,14 +635,14 @@ export default function OAuth2FlowPage() {
                 <Alert variant="info" title="User Action Required">
                   Visit the URL below and enter the user code to authorize this device.
                 </Alert>
-                <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg text-center">
-                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">User Code</p>
-                  <p className="text-3xl font-bold text-blue-600 dark:text-blue-400 font-mono">
+                <div className="p-4 bg-primary/10 rounded-lg text-center">
+                  <p className="text-xs text-muted-foreground mb-2">User Code</p>
+                  <p className="text-3xl font-bold text-primary font-mono">
                     {userCode}
                   </p>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-2">Verification URL</label>
+                  <label className="block text-xs font-medium mb-2">Verification URL</label>
                   <div className="flex gap-2">
                     <Input value={verificationUri} readOnly />
                     <Button
@@ -671,33 +673,21 @@ export default function OAuth2FlowPage() {
               <div className="space-y-4">
                 <CodeBlock code={tokens.access_token} maxHeight="120px" />
                 {tokens.expires_in && (
-                  <p className="text-sm text-gray-600">Expires in: {tokens.expires_in} seconds</p>
+                  <p className="text-xs text-muted-foreground">Expires in: {tokens.expires_in} seconds</p>
                 )}
 
                 {tokenClaims && (
-                  <div>
-                    <h4 className="font-semibold mb-2">Token Claims</h4>
-                    <div className="space-y-2">
-                      {Object.entries(tokenClaims).map(([key, value]) => (
-                        <div key={key} className="flex gap-3 p-2 bg-gray-50 dark:bg-gray-800 rounded">
-                          <span className="font-mono text-sm font-medium min-w-[100px]">{key}</span>
-                          <span className="text-sm break-all">
-                            {typeof value === 'object' ? JSON.stringify(value) : String(value)}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
+                  <JWTInspector token={tokens.access_token!} label="Access Token Claims" />
                 )}
 
                 {tokens.refresh_token && (
                   <div>
-                    <h4 className="font-semibold mb-2">Refresh Token</h4>
+                    <h4 className="text-xs font-semibold text-foreground mb-2">Refresh Token</h4>
                     <CodeBlock code={tokens.refresh_token} maxHeight="100px" />
                   </div>
                 )}
 
-                <div className="flex gap-2 pt-4 border-t">
+                <div className="flex gap-2 pt-4 border-t border-border">
                   {tokens.refresh_token && (
                     <Button onClick={handleRefreshToken} loading={loading} size="sm">
                       <RefreshCw className="w-4 h-4" />
@@ -728,7 +718,7 @@ export default function OAuth2FlowPage() {
           )}
         </div>
 
-        <div className="space-y-6">
+        <div className="space-y-4">
           <Card title="Flow Logs">
             <LogViewer logs={logs} maxHeight="600px" />
           </Card>

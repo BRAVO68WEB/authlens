@@ -1,12 +1,12 @@
 import type { Metadata } from "next";
 import "./globals.css";
-import { Sidebar } from "@/components/Sidebar";
-import { Header } from "@/components/Header";
 import { AppThemeProvider } from "@/components/ThemeProvider";
-import { Geist } from "next/font/google";
+import { LayoutShell } from "@/components/layout-shell";
+import { Geist, JetBrains_Mono } from "next/font/google";
 import { cn } from "@/lib/utils";
 
-const geist = Geist({subsets:['latin'],variable:'--font-sans'});
+const geist = Geist({ subsets: ['latin'], variable: '--font-sans' });
+const jetbrainsMono = JetBrains_Mono({ subsets: ['latin'], variable: '--font-mono' });
 
 export const metadata: Metadata = {
   title: "AuthLens - Auth Playground & Debugger",
@@ -19,18 +19,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={cn("font-sans", geist.variable)}>
+    <html lang="en" className={cn(geist.variable, jetbrainsMono.variable)} suppressHydrationWarning>
       <body className="antialiased">
         <AppThemeProvider>
-          <div className="flex min-h-screen bg-background text-foreground transition-colors duration-200">
-            <Sidebar />
-            <div className="flex-1 flex flex-col">
-              <Header />
-              <main className="flex-1 overflow-auto bg-bg-secondary">
-                {children}
-              </main>
-            </div>
-          </div>
+          <LayoutShell>{children}</LayoutShell>
         </AppThemeProvider>
       </body>
     </html>

@@ -69,12 +69,12 @@ export default function APITestingPage() {
   };
 
   return (
-    <div className="p-8 max-w-7xl mx-auto">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-2">
+    <div className="p-4 max-w-7xl mx-auto">
+      <div className="mb-4">
+        <h1 className="text-lg font-bold text-foreground mb-1">
           API Request Builder
         </h1>
-        <p className="text-gray-600 dark:text-gray-400">
+        <p className="text-xs text-muted-foreground">
           Test API endpoints with custom headers and body
         </p>
       </div>
@@ -142,19 +142,19 @@ export default function APITestingPage() {
                   <Card title="Response">
                     <div className="space-y-4">
                       <div className="flex items-center justify-between">
-                        <span className="font-medium">Status:</span>
+                        <span className="text-xs font-medium">Status:</span>
                         <span
                           className={
                             response.status >= 200 && response.status < 300
-                              ? 'text-green-600'
-                              : 'text-red-600'
+                              ? 'text-status-success'
+                              : 'text-status-error'
                           }
                         >
                           {response.status} {response.statusText}
                         </span>
                       </div>
                       <div className="flex items-center justify-between">
-                        <span className="font-medium">Duration:</span>
+                        <span className="text-xs font-medium">Duration:</span>
                         <span>{response.duration}ms</span>
                       </div>
                     </div>
@@ -188,4 +188,3 @@ export default function APITestingPage() {
     </div>
   );
 }
-

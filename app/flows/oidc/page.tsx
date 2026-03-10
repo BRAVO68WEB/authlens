@@ -8,12 +8,16 @@ import { Input, Select } from '@/components/Input';
 import { Alert } from '@/components/Alert';
 import { CodeBlock } from '@/components/CodeBlock';
 import { LogViewer } from '@/components/LogViewer';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Switch } from '@/components/ui/switch';
+import { JWTInspector } from '@/components/token/JWTInspector';
 import { buildAuthorizationUrl, exchangeCode, fetchUserInfo, introspectToken, revokeToken } from '@/lib/oidc';
 import { validateJWT } from '@/lib/jwt';
 import { logInfo, logError } from '@/lib/logging';
 import type { LogEntry, OIDCResponseType } from '@/lib/types';
 import { Play, Copy, ExternalLink, RefreshCw, Eye, Trash2 } from 'lucide-react';
 import { copyToClipboard, parseJWT } from '@/lib/utils';
+import { toast } from 'sonner';
 
 export default function OIDCFlowPage() {
   const { providers, selectedProviderId } = useStore();
@@ -23,7 +27,7 @@ export default function OIDCFlowPage() {
   const [responseType, setResponseType] = useState<OIDCResponseType>('code');
   const [usePKCE, setUsePKCE] = useState(true);
   const [scope, setScope] = useState('openid profile email');
-  const [redirectUri, setRedirectUri] = useState(selectedProvider?.redirectUris[0] || '');
+  const [redirectUri, setRedirectUri] = useState(selectedProvider?.redirectUris?.[0] || '');
   const [prompt, setPrompt] = useState('');
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [authUrl, setAuthUrl] = useState('');
@@ -53,7 +57,7 @@ export default function OIDCFlowPage() {
 
   // Sync redirectUri when provider changes
   useEffect(() => {
-    if (selectedProvider?.redirectUris[0]) {
+    if (selectedProvider?.redirectUris?.[0]) {
       setRedirectUri(selectedProvider.redirectUris[0]);
     }
   }, [selectedProvider?.id]);
@@ -84,12 +88,12 @@ export default function OIDCFlowPage() {
 
   const handleStartFlow = async () => {
     if (!selectedProvider) {
-      alert('Please select a provider first');
+      toast.warning('Please select a provider first');
       return;
     }
 
     if (!selectedProvider.endpoints.authorizationUrl) {
-      alert('Provider is missing authorization URL');
+      toast.error('Provider is missing authorization URL');
       return;
     }
 
@@ -152,12 +156,12 @@ export default function OIDCFlowPage() {
     const codeToExchange = code || authCode;
 
     if (!selectedProvider || !codeToExchange) {
-      alert('Please enter the authorization code');
+      toast.warning('Please enter the authorization code');
       return;
     }
 
     if (!selectedProvider.endpoints.tokenUrl) {
-      alert('Provider is missing token URL');
+      toast.error('Provider is missing token URL');
       return;
     }
 
@@ -263,12 +267,12 @@ export default function OIDCFlowPage() {
 
   const handleFetchUserInfo = async () => {
     if (!selectedProvider || !tokens.access_token) {
-      alert('Please obtain an access token first');
+      toast.warning('Please obtain an access token first');
       return;
     }
 
     if (!selectedProvider.endpoints.userinfoUrl) {
-      alert('Provider is missing userinfo URL');
+      toast.error('Provider is missing userinfo URL');
       return;
     }
 
@@ -294,12 +298,12 @@ export default function OIDCFlowPage() {
 
   const handleIntrospect = async () => {
     if (!selectedProvider || !tokens.access_token) {
-      alert('Please obtain an access token first');
+      toast.warning('Please obtain an access token first');
       return;
     }
 
     if (!selectedProvider.endpoints.introspectionUrl) {
-      alert('Provider does not support token introspection');
+      toast.error('Provider does not support token introspection');
       return;
     }
 
@@ -327,12 +331,12 @@ export default function OIDCFlowPage() {
 
   const handleRevoke = async () => {
     if (!selectedProvider || !tokens.access_token) {
-      alert('Please obtain an access token first');
+      toast.warning('Please obtain an access token first');
       return;
     }
 
     if (!selectedProvider.endpoints.revocationUrl) {
-      alert('Provider does not support token revocation');
+      toast.error('Provider does not support token revocation');
       return;
     }
 
@@ -365,7 +369,7 @@ export default function OIDCFlowPage() {
 
   if (!selectedProvider) {
     return (
-      <div className="p-8 max-w-4xl mx-auto">
+      <div className="p-4 max-w-4xl mx-auto">
         <Alert variant="warning" title="No Provider Selected">
           Please select or configure a provider first from the providers page.
         </Alert>
@@ -375,7 +379,7 @@ export default function OIDCFlowPage() {
 
   if (selectedProvider.type !== 'oidc') {
     return (
-      <div className="p-8 max-w-4xl mx-auto">
+      <div className="p-4 max-w-4xl mx-auto">
         <Alert variant="error" title="Invalid Provider Type">
           Selected provider is not an OIDC provider. Please select an OIDC provider.
         </Alert>
@@ -384,13 +388,13 @@ export default function OIDCFlowPage() {
   }
 
   return (
-    <div className="p-8 max-w-7xl mx-auto">
-      <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
+    <div className="p-4 max-w-7xl mx-auto">
+      <div className="flex flex-col md:flex-row md:items-center justify-between mb-4 gap-2">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-2">
+          <h1 className="text-lg font-bold text-foreground mb-1">
             OIDC Flow Runner
           </h1>
-          <p className="text-gray-600 dark:text-gray-400">
+          <p className="text-xs text-muted-foreground">
             Test OpenID Connect authentication flows with {selectedProvider.name}
           </p>
         </div>
@@ -404,10 +408,10 @@ export default function OIDCFlowPage() {
         </Button>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 space-y-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <div className="lg:col-span-2 space-y-4">
           <Card title="Flow Configuration">
-            <div className="space-y-4">
+            <div className="space-y-3">
               <Select
                 label="Flow Type"
                 value={flowType}
@@ -448,10 +452,10 @@ export default function OIDCFlowPage() {
               />
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                <label className="block text-xs font-medium text-muted-foreground mb-1">
                   Redirect URI
                 </label>
-                <p className="px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-800/50 text-gray-900 dark:text-gray-100 text-sm font-mono break-all">
+                <p className="px-3 py-2 rounded-lg border border-border bg-muted text-foreground text-sm font-mono break-all">
                   {redirectUri || 'Not configured'}
                 </p>
               </div>
@@ -479,16 +483,15 @@ export default function OIDCFlowPage() {
 
               {responseType.includes('code') && (
                 <div className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
+                  <Switch
                     id="pkce"
+                    size="sm"
                     checked={usePKCE}
-                    onChange={(e) => setUsePKCE(e.target.checked)}
-                    className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
+                    onCheckedChange={(checked) => setUsePKCE(checked)}
                   />
                   <label
                     htmlFor="pkce"
-                    className="text-sm font-medium text-gray-700 dark:text-gray-300"
+                    className="text-xs font-medium text-muted-foreground"
                   >
                     Use PKCE (Proof Key for Code Exchange)
                   </label>
@@ -504,7 +507,7 @@ export default function OIDCFlowPage() {
 
           {authUrl && (
             <Card title="Authorization URL">
-              <div className="space-y-4">
+              <div className="space-y-3">
                 <CodeBlock code={authUrl} language="text" maxHeight="150px" />
                 <div className="flex gap-2">
                   <Button
@@ -530,7 +533,7 @@ export default function OIDCFlowPage() {
 
           {responseType.includes('code') && authUrl && !tokens.access_token && (
             <Card title="Token Exchange">
-              <div className="space-y-4">
+              <div className="space-y-3">
                 <Alert variant="info">
                   After authentication, the authorization code will be automatically captured.
                   Or paste it manually below.
@@ -555,60 +558,41 @@ export default function OIDCFlowPage() {
 
           {tokens.access_token && (
             <Card title="Token Details">
-              <div className="space-y-4">
-                {/* Tabs */}
-                <div className="flex gap-2 border-b border-gray-200 dark:border-gray-700">
-                  <button
-                    onClick={() => setActiveTab('tokens')}
-                    className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${activeTab === 'tokens'
-                      ? 'border-blue-500 text-blue-600 dark:text-blue-400'
-                      : 'border-transparent text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
-                      }`}
-                  >
+              <Tabs
+                value={activeTab}
+                onValueChange={(value) => setActiveTab(value as typeof activeTab)}
+              >
+                <TabsList variant="line" className="w-full justify-start mb-3">
+                  <TabsTrigger value="tokens" className="text-xs h-7 px-3">
                     Tokens
-                  </button>
-                  <button
-                    onClick={() => setActiveTab('claims')}
-                    className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${activeTab === 'claims'
-                      ? 'border-blue-500 text-blue-600 dark:text-blue-400'
-                      : 'border-transparent text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
-                      }`}
-                  >
+                  </TabsTrigger>
+                  <TabsTrigger value="claims" className="text-xs h-7 px-3">
                     Claims
-                  </button>
-                  <button
-                    onClick={() => setActiveTab('userinfo')}
-                    className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${activeTab === 'userinfo'
-                      ? 'border-blue-500 text-blue-600 dark:text-blue-400'
-                      : 'border-transparent text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
-                      }`}
-                  >
+                  </TabsTrigger>
+                  <TabsTrigger value="userinfo" className="text-xs h-7 px-3">
                     UserInfo
-                  </button>
+                  </TabsTrigger>
                   {selectedProvider.endpoints.introspectionUrl && (
-                    <button
-                      onClick={() => setActiveTab('introspect')}
-                      className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${activeTab === 'introspect'
-                        ? 'border-blue-500 text-blue-600 dark:text-blue-400'
-                        : 'border-transparent text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
-                        }`}
-                    >
+                    <TabsTrigger value="introspect" className="text-xs h-7 px-3">
                       Introspection
-                    </button>
+                    </TabsTrigger>
                   )}
-                </div>
+                </TabsList>
 
-                {/* Tab Content */}
-                {activeTab === 'tokens' && (
+                <TabsContent value="tokens">
                   <div className="space-y-4">
                     {tokens.access_token && (
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        <label className="block text-xs font-medium text-muted-foreground mb-2">
                           Access Token {tokens.token_type && `(${tokens.token_type})`}
                         </label>
-                        <CodeBlock code={tokens.access_token} maxHeight="120px" />
+                        {accessTokenClaims ? (
+                          <JWTInspector token={tokens.access_token} label="Access Token" />
+                        ) : (
+                          <CodeBlock code={tokens.access_token} maxHeight="120px" />
+                        )}
                         {tokens.expires_in && (
-                          <p className="text-xs text-gray-500 mt-1">
+                          <p className="text-xs text-muted-foreground mt-1">
                             Expires in: {tokens.expires_in} seconds
                           </p>
                         )}
@@ -616,10 +600,10 @@ export default function OIDCFlowPage() {
                     )}
                     {tokens.id_token && (
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        <label className="block text-xs font-medium text-muted-foreground mb-2">
                           ID Token
                         </label>
-                        <CodeBlock code={tokens.id_token} maxHeight="120px" />
+                        <JWTInspector token={tokens.id_token} label="ID Token" />
                         {idTokenValidation && (
                           <div className="mt-2">
                             <Alert
@@ -646,14 +630,14 @@ export default function OIDCFlowPage() {
                     )}
                     {tokens.refresh_token && (
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        <label className="block text-xs font-medium text-muted-foreground mb-2">
                           Refresh Token
                         </label>
                         <CodeBlock code={tokens.refresh_token} maxHeight="120px" />
                       </div>
                     )}
 
-                    <div className="flex gap-2 pt-4 border-t">
+                    <div className="flex gap-2 pt-3 border-t border-border">
                       {selectedProvider.endpoints.userinfoUrl && (
                         <Button onClick={handleFetchUserInfo} loading={loading} size="sm">
                           <Eye className="w-4 h-4" />
@@ -674,22 +658,22 @@ export default function OIDCFlowPage() {
                       )}
                     </div>
                   </div>
-                )}
+                </TabsContent>
 
-                {activeTab === 'claims' && (
-                  <div className="space-y-6">
+                <TabsContent value="claims">
+                  <div className="space-y-4">
                     {idTokenClaims && (
                       <div>
-                        <h4 className="font-semibold text-gray-900 dark:text-gray-100 mb-3">
+                        <h4 className="font-semibold text-foreground mb-2 text-xs uppercase tracking-wide">
                           ID Token Claims
                         </h4>
-                        <div className="space-y-2">
+                        <div className="space-y-1">
                           {Object.entries(idTokenClaims).map(([key, value]) => (
-                            <div key={key} className="flex items-start gap-3 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                              <span className="font-mono text-sm font-medium text-blue-600 dark:text-blue-400 min-w-[120px]">
+                            <div key={key} className="flex items-start gap-3 p-2 bg-muted rounded-md">
+                              <span className="font-mono text-xs font-medium text-primary min-w-[120px]">
                                 {key}
                               </span>
-                              <span className="text-sm text-gray-900 dark:text-gray-100 break-all">
+                              <span className="text-xs text-foreground break-all">
                                 {typeof value === 'object' ? JSON.stringify(value) : String(value)}
                               </span>
                             </div>
@@ -700,16 +684,16 @@ export default function OIDCFlowPage() {
 
                     {accessTokenClaims && (
                       <div>
-                        <h4 className="font-semibold text-gray-900 dark:text-gray-100 mb-3">
+                        <h4 className="font-semibold text-foreground mb-2 text-xs uppercase tracking-wide">
                           Access Token Claims (JWT)
                         </h4>
-                        <div className="space-y-2">
+                        <div className="space-y-1">
                           {Object.entries(accessTokenClaims).map(([key, value]) => (
-                            <div key={key} className="flex items-start gap-3 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                              <span className="font-mono text-sm font-medium text-green-600 dark:text-green-400 min-w-[120px]">
+                            <div key={key} className="flex items-start gap-3 p-2 bg-muted rounded-md">
+                              <span className="font-mono text-xs font-medium text-green-600 dark:text-green-400 min-w-[120px]">
                                 {key}
                               </span>
-                              <span className="text-sm text-gray-900 dark:text-gray-100 break-all">
+                              <span className="text-xs text-foreground break-all">
                                 {typeof value === 'object' ? JSON.stringify(value) : String(value)}
                               </span>
                             </div>
@@ -724,74 +708,74 @@ export default function OIDCFlowPage() {
                       </Alert>
                     )}
                   </div>
-                )}
+                </TabsContent>
 
-                {activeTab === 'userinfo' && (
+                <TabsContent value="userinfo">
                   <div>
                     {userInfo ? (
                       <CodeBlock code={JSON.stringify(userInfo, null, 2)} language="json" />
                     ) : (
-                      <div className="text-center py-8">
-                        <p className="text-gray-500 mb-4">UserInfo not yet fetched</p>
+                      <div className="text-center py-6">
+                        <p className="text-muted-foreground text-xs mb-3">UserInfo not yet fetched</p>
                         <Button onClick={handleFetchUserInfo} loading={loading}>
                           Fetch UserInfo
                         </Button>
                       </div>
                     )}
                   </div>
-                )}
+                </TabsContent>
 
-                {activeTab === 'introspect' && (
+                <TabsContent value="introspect">
                   <div>
                     {introspectionResult ? (
                       <CodeBlock code={JSON.stringify(introspectionResult, null, 2)} language="json" />
                     ) : (
-                      <div className="text-center py-8">
-                        <p className="text-gray-500 mb-4">Token not yet introspected</p>
+                      <div className="text-center py-6">
+                        <p className="text-muted-foreground text-xs mb-3">Token not yet introspected</p>
                         <Button onClick={handleIntrospect} loading={loading}>
                           Introspect Token
                         </Button>
                       </div>
                     )}
                   </div>
-                )}
-              </div>
+                </TabsContent>
+              </Tabs>
             </Card>
           )}
         </div>
 
-        <div className="space-y-6">
+        <div className="space-y-4">
           <Card title="Flow Logs">
             <LogViewer logs={logs} maxHeight="600px" />
           </Card>
 
           {state && (
             <Card title="Session Info">
-              <div className="space-y-2 text-sm">
+              <div className="space-y-2 text-xs">
                 <div>
-                  <span className="font-medium text-gray-700 dark:text-gray-300">
+                  <span className="font-medium text-muted-foreground">
                     State:
                   </span>
-                  <p className="text-gray-600 dark:text-gray-400 break-all font-mono text-xs">
+                  <p className="text-muted-foreground break-all font-mono text-xs">
                     {state}
                   </p>
                 </div>
                 {nonce && (
                   <div>
-                    <span className="font-medium text-gray-700 dark:text-gray-300">
+                    <span className="font-medium text-muted-foreground">
                       Nonce:
                     </span>
-                    <p className="text-gray-600 dark:text-gray-400 break-all font-mono text-xs">
+                    <p className="text-muted-foreground break-all font-mono text-xs">
                       {nonce}
                     </p>
                   </div>
                 )}
                 {codeVerifier && (
                   <div>
-                    <span className="font-medium text-gray-700 dark:text-gray-300">
+                    <span className="font-medium text-muted-foreground">
                       Code Verifier (PKCE):
                     </span>
-                    <p className="text-gray-600 dark:text-gray-400 break-all font-mono text-xs">
+                    <p className="text-muted-foreground break-all font-mono text-xs">
                       {codeVerifier}
                     </p>
                   </div>

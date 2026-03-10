@@ -1,6 +1,10 @@
 'use client';
 
 import { cn } from '@/lib/utils';
+import { Input as ShadInput } from '@/components/ui/input';
+import { Textarea as ShadTextarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
+import { useId } from 'react';
 
 interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   label?: string;
@@ -16,32 +20,28 @@ export function Input({
   id,
   ...props
 }: InputProps) {
-  const inputId = id || `input-${Math.random().toString(36).substr(2, 9)}`;
+  const autoId = useId();
+  const inputId = id || autoId;
 
   return (
-    <div className="w-full">
+    <div className="w-full space-y-1">
       {label && (
-        <label
-          htmlFor={inputId}
-          className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-        >
+        <Label htmlFor={inputId} className="text-xs">
           {label}
-        </label>
+        </Label>
       )}
-      <input
+      <ShadInput
         id={inputId}
         className={cn(
-          'w-full px-3 py-2 rounded-lg border bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 transition-colors',
-          error
-            ? 'border-red-500 focus:ring-red-500'
-            : 'border-gray-300 dark:border-gray-600 focus:ring-blue-500',
+          'h-8 text-xs',
+          error && 'border-destructive focus-visible:ring-destructive',
           className
         )}
         {...props}
       />
-      {error && <p className="mt-1 text-sm text-red-600 dark:text-red-400">{error}</p>}
+      {error && <p className="text-[11px] text-destructive">{error}</p>}
       {helperText && !error && (
-        <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">{helperText}</p>
+        <p className="text-[11px] text-muted-foreground">{helperText}</p>
       )}
     </div>
   );
@@ -61,32 +61,28 @@ export function TextArea({
   id,
   ...props
 }: TextAreaProps) {
-  const inputId = id || `textarea-${Math.random().toString(36).substr(2, 9)}`;
+  const autoId = useId();
+  const inputId = id || autoId;
 
   return (
-    <div className="w-full">
+    <div className="w-full space-y-1">
       {label && (
-        <label
-          htmlFor={inputId}
-          className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-        >
+        <Label htmlFor={inputId} className="text-xs">
           {label}
-        </label>
+        </Label>
       )}
-      <textarea
+      <ShadTextarea
         id={inputId}
         className={cn(
-          'w-full px-3 py-2 rounded-lg border bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 transition-colors',
-          error
-            ? 'border-red-500 focus:ring-red-500'
-            : 'border-gray-300 dark:border-gray-600 focus:ring-blue-500',
+          'text-xs font-mono',
+          error && 'border-destructive focus-visible:ring-destructive',
           className
         )}
         {...props}
       />
-      {error && <p className="mt-1 text-sm text-red-600 dark:text-red-400">{error}</p>}
+      {error && <p className="text-[11px] text-destructive">{error}</p>}
       {helperText && !error && (
-        <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">{helperText}</p>
+        <p className="text-[11px] text-muted-foreground">{helperText}</p>
       )}
     </div>
   );
@@ -108,25 +104,21 @@ export function Select({
   id,
   ...props
 }: SelectProps) {
-  const inputId = id || `select-${Math.random().toString(36).substr(2, 9)}`;
+  const autoId = useId();
+  const inputId = id || autoId;
 
   return (
-    <div className="w-full">
+    <div className="w-full space-y-1">
       {label && (
-        <label
-          htmlFor={inputId}
-          className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-        >
+        <Label htmlFor={inputId} className="text-xs">
           {label}
-        </label>
+        </Label>
       )}
       <select
         id={inputId}
         className={cn(
-          'w-full px-3 py-2 rounded-lg border bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 transition-colors',
-          error
-            ? 'border-red-500 focus:ring-red-500'
-            : 'border-gray-300 dark:border-gray-600 focus:ring-blue-500',
+          'flex h-8 w-full rounded-md border border-input bg-background px-2 py-1 text-xs ring-offset-background focus:outline-none focus:ring-1 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-50',
+          error && 'border-destructive focus:ring-destructive',
           className
         )}
         {...props}
@@ -137,11 +129,10 @@ export function Select({
           </option>
         ))}
       </select>
-      {error && <p className="mt-1 text-sm text-red-600 dark:text-red-400">{error}</p>}
+      {error && <p className="text-[11px] text-destructive">{error}</p>}
       {helperText && !error && (
-        <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">{helperText}</p>
+        <p className="text-[11px] text-muted-foreground">{helperText}</p>
       )}
     </div>
   );
 }
-
