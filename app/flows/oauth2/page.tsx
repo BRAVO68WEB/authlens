@@ -133,7 +133,7 @@ export default function OAuth2FlowPage() {
       const url = buildOAuth2AuthorizationUrl({
         authorizationEndpoint: selectedProvider.endpoints.authorizationUrl,
         clientId: selectedProvider.clientId!,
-        redirectUri: selectedProvider.redirectUris?.[0] || '',
+        redirectUri: redirectUri,
         scope,
         state: newState,
         responseType: 'code',
@@ -171,7 +171,7 @@ export default function OAuth2FlowPage() {
         code: codeToExchange,
         clientId: selectedProvider.clientId!,
         clientSecret: selectedProvider.clientSecret,
-        redirectUri: selectedProvider.redirectUris?.[0] || '',
+        redirectUri: redirectUri,
         codeVerifier: usePKCE ? codeVerifier : undefined,
       });
 
@@ -509,9 +509,12 @@ export default function OAuth2FlowPage() {
                 <label className="block text-xs font-medium text-muted-foreground mb-1">
                   Redirect URI
                 </label>
-                <p className="px-3 py-2 rounded-lg border border-border bg-muted text-foreground text-xs font-mono break-all">
-                  {redirectUri || 'Not configured'}
-                </p>
+                <Input
+                  value={redirectUri}
+                  onChange={(e) => setRedirectUri(e.target.value)}
+                  placeholder="https://your-app.com/callback"
+                  className="font-mono text-sm"
+                />
               </div>
 
               {/* Authorization Code Flow */}

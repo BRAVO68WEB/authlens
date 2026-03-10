@@ -6,19 +6,39 @@ import { Card } from '@/components/Card';
 import { Button } from '@/components/Button';
 import { Alert } from '@/components/Alert';
 import { CodeBlock } from '@/components/CodeBlock';
+import { Input, Select } from '@/components/Input';
 import { downloadFile } from '@/lib/utils';
-import { Upload, Download, Trash2 } from 'lucide-react';
+import { Upload, Download, Trash2, Database } from 'lucide-react';
 import { toast } from 'sonner';
 
 export default function WorkspacePage() {
   const { exportWorkspace, importWorkspace, clearWorkspace, providers, presets } = useStore();
   const [importData, setImportData] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [exportProviderId, setExportProviderId] = useState('all');
 
   const handleExport = () => {
-    const workspace = exportWorkspace();
+    let workspace = exportWorkspace();
+
+    if (exportProviderId !== 'all') {
+      const selectedProvider = providers.find(p => p.id === exportProviderId);
+      if (!selectedProvider) return;
+
+      workspace = {
+        ...workspace,
+        name: `AuthLens - ${selectedProvider.name}`,
+        providers: [selectedProvider],
+        presets: presets.filter(p => p.providerId === exportProviderId),
+        claimRuleSets: [], // Rules are global, excluding from specific provider export
+      };
+    }
+
+    const filename = exportProviderId === 'all'
+      ? `authlens-workspace-${Date.now()}.json`
+      : `authlens-provider-${exportProviderId}-${Date.now()}.json`;
+
     const json = JSON.stringify(workspace, null, 2);
-    downloadFile(json, `authlens-workspace-${Date.now()}.json`, 'application/json');
+    downloadFile(json, filename, 'application/json');
   };
 
   const handleImport = () => {
@@ -95,12 +115,26 @@ export default function WorkspacePage() {
               </div>
             </div>
 
-            <div className="flex gap-2">
-              <Button onClick={handleExport}>
+            <div className="flex flex-col sm:flex-row items-end gap-4 p-4 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-200 dark:border-gray-700">
+              <div className="flex-1 w-full">
+                <Select
+                  label="Select Provider to Export"
+                  value={exportProviderId}
+                  onChange={(e) => setExportProviderId(e.target.value)}
+                  options={[
+                    { value: 'all', label: 'All Providers (Full Workspace)' },
+                    ...providers.map(p => ({ value: p.id, label: p.name }))
+                  ]}
+                />
+              </div>
+              <Button onClick={handleExport} className="whitespace-nowrap">
                 <Download className="w-4 h-4" />
                 Export Workspace
               </Button>
-              <Button variant="danger" onClick={handleClear}>
+            </div>
+
+            <div className="flex gap-2">
+              <Button variant="danger" onClick={handleClear} size="sm">
                 <Trash2 className="w-4 h-4" />
                 Clear Workspace
               </Button>

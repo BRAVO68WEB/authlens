@@ -8,9 +8,13 @@ import { CodeBlock } from '@/components/CodeBlock';
 import { Alert } from '@/components/Alert';
 import { fetchJWKS } from '@/lib/jwt';
 import { Globe } from 'lucide-react';
+import { useStore } from '@/lib/store';
+import { useEffect } from 'react';
 
 export default function JWKViewerPage() {
-  const [jwksUrl, setJwksUrl] = useState('');
+  const { providers, selectedProviderId } = useStore();
+  const selectedProvider = providers.find((p) => p.id === selectedProviderId);
+  const [jwksUrl, setJwksUrl] = useState(selectedProvider?.endpoints.jwksUrl || '');
   const [jwks, setJwks] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -28,6 +32,12 @@ export default function JWKViewerPage() {
       setLoading(false);
     }
   };
+  // Sync redirectUri when provider changes
+  useEffect(() => {
+    if (selectedProvider?.endpoints.jwksUrl) {
+      setJwksUrl(selectedProvider.endpoints.jwksUrl);
+    }
+  }, [selectedProvider?.id]);
 
   return (
     <div className="p-4 max-w-4xl mx-auto">
@@ -37,6 +47,7 @@ export default function JWKViewerPage() {
         </h1>
         <p className="text-xs text-muted-foreground">
           View and inspect JSON Web Key Sets
+          Select provider to auto fill the JWKS URL (For Oauth remove Application name)
         </p>
       </div>
 

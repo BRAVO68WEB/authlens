@@ -86,6 +86,52 @@ export async function exchangeAuthorizationCode(params: {
 /**
  * Request tokens using Resource Owner Password Credentials flow (legacy)
  */
+// export async function requestPasswordGrant(params: {
+//   tokenEndpoint: string;
+//   username: string;
+//   password: string;
+//   clientId: string;
+//   clientSecret?: string;
+//   scope?: string;
+// }): Promise<TokenResponse> {
+//   const body: Record<string, string> = {
+//     grant_type: 'password',
+//     username: params.username,
+//     password: params.password,
+//     client_id: params.clientId,
+//   };
+//   if (params.clientSecret) {
+//     body.client_secret = params.clientSecret;
+//   }
+
+//   if (params.scope) {
+//     body.scope = params.scope;
+//   }
+
+//   const headers: Record<string, string> = {
+//     'Content-Type': 'application/x-www-form-urlencoded',
+//   };
+
+//   if (params.clientSecret) {
+//     const credentials = btoa(`${params.clientId}:${params.clientSecret}`);
+//     headers['Authorization'] = `Basic ${credentials}`;
+//   }
+
+//   const response = await fetch(params.tokenEndpoint, {
+//     method: 'POST',
+//     headers,
+//     body: objectToFormData(body).toString(),
+//   });
+
+//   if (!response.ok) {
+//     const errorData = await response.json().catch(() => ({}));
+//     throw new Error(
+//       `Password grant failed: ${errorData.error_description || errorData.error || response.statusText}`
+//     );
+//   }
+
+//   return response.json();
+// }
 export async function requestPasswordGrant(params: {
   tokenEndpoint: string;
   username: string;
@@ -99,25 +145,25 @@ export async function requestPasswordGrant(params: {
     username: params.username,
     password: params.password,
     client_id: params.clientId,
+    response_type: 'token'
   };
+
+  if (params.clientSecret) {
+    body.client_secret = params.clientSecret;
+  }
 
   if (params.scope) {
     body.scope = params.scope;
   }
 
   const headers: Record<string, string> = {
-    'Content-Type': 'application/x-www-form-urlencoded',
+    'Content-Type': 'application/json',
   };
-
-  if (params.clientSecret) {
-    const credentials = btoa(`${params.clientId}:${params.clientSecret}`);
-    headers['Authorization'] = `Basic ${credentials}`;
-  }
 
   const response = await fetch(params.tokenEndpoint, {
     method: 'POST',
     headers,
-    body: objectToFormData(body).toString(),
+    body: JSON.stringify(body),
   });
 
   if (!response.ok) {
