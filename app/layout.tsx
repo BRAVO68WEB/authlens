@@ -3,6 +3,10 @@ import "./globals.css";
 import { Sidebar } from "@/components/Sidebar";
 import { Header } from "@/components/Header";
 import { AppThemeProvider } from "@/components/ThemeProvider";
+import { Geist } from "next/font/google";
+import { cn } from "@/lib/utils";
+
+const geist = Geist({subsets:['latin'],variable:'--font-sans'});
 
 export const metadata: Metadata = {
   title: "AuthLens - Auth Playground & Debugger",
@@ -15,7 +19,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" className={cn("font-sans", geist.variable)}>
       <body className="antialiased">
         <AppThemeProvider>
           <div className="flex min-h-screen bg-background text-foreground transition-colors duration-200">
