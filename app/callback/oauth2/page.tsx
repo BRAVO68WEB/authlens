@@ -68,12 +68,12 @@ function CallbackContent() {
   };
 
   return (
-    <div className="p-8 max-w-4xl mx-auto">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-2">
+    <div className="p-4 max-w-4xl mx-auto">
+      <div className="mb-4">
+        <h1 className="text-lg font-bold text-foreground mb-2">
           OAuth 2.0 Callback
         </h1>
-        <p className="text-gray-600 dark:text-gray-400">
+        <p className="text-xs text-muted-foreground">
           Authorization callback received
         </p>
       </div>
@@ -86,9 +86,9 @@ function CallbackContent() {
               <p>{params.error_description}</p>
             )}
             {params.error && getPromptErrorExplanation(params.error) && (
-              <div className="mt-3 p-3 bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-red-800 rounded-lg text-sm">
-                <p className="font-medium mb-1">💡 What does this mean?</p>
-                <p className="text-gray-700 dark:text-gray-300">
+              <div className="mt-3 p-3 bg-status-error/10 border border-status-error/20 rounded-lg text-sm">
+                <p className="font-medium mb-1">What does this mean?</p>
+                <p className="text-muted-foreground">
                   {getPromptErrorExplanation(params.error)}
                 </p>
               </div>
@@ -133,9 +133,9 @@ function CallbackContent() {
       </div>
 
       {!error && (params.code || params.access_token) && (
-        <div className="mt-6 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-          <p className="text-sm text-gray-700 dark:text-gray-300">
-            <strong>💡 Tip:</strong> Click "Next Step" to automatically send this {params.code ? 'authorization code' : 'access token'}
+        <div className="mt-6 p-4 bg-primary/10 rounded-lg">
+          <p className="text-xs text-muted-foreground">
+            <strong>Tip:</strong> Click "Next Step" to automatically send this {params.code ? 'authorization code' : 'access token'}
             to the OAuth 2.0 flow page {params.code ? 'for token exchange' : ''}. The window will close automatically after sending.
           </p>
         </div>
@@ -147,10 +147,10 @@ function CallbackContent() {
 export default function OAuth2CallbackPage() {
   return (
     <Suspense fallback={
-      <div className="p-8 max-w-4xl mx-auto">
+      <div className="p-4 max-w-4xl mx-auto">
         <Card>
           <div className="text-center py-8">
-            <p className="text-gray-600 dark:text-gray-400">Loading callback data...</p>
+            <p className="text-muted-foreground">Loading callback data...</p>
           </div>
         </Card>
       </div>

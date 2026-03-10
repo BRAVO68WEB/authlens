@@ -19,6 +19,7 @@ import {
 import { logInfo, logError } from '@/lib/logging';
 import type { LogEntry, SAMLAssertion, SAMLValidationResult } from '@/lib/types';
 import { Play, FileText, Check, X, ExternalLink } from 'lucide-react';
+import { toast } from 'sonner';
 
 export default function SAMLFlowPage() {
   const { providers, selectedProviderId } = useStore();
@@ -70,7 +71,7 @@ export default function SAMLFlowPage() {
 
   const handleBuildAuthnRequest = async () => {
     if (!selectedProvider?.saml?.ssoUrl || !selectedProvider?.saml?.assertionConsumerServiceUrl) {
-      alert('Please configure SAML SSO URL and ACS URL in provider settings');
+      toast.error('Please configure SAML SSO URL and ACS URL in provider settings');
       return;
     }
 
@@ -140,7 +141,7 @@ export default function SAMLFlowPage() {
 
   const handleInitiateSAMLFlow = () => {
     if (!redirectUrl) {
-      alert('Please build the AuthnRequest first');
+      toast.warning('Please build the AuthnRequest first');
       return;
     }
 
@@ -152,7 +153,7 @@ export default function SAMLFlowPage() {
     const response = responseToUse || samlResponse;
 
     if (!response) {
-      alert('Please paste a SAML response');
+      toast.warning('Please paste a SAML response');
       return;
     }
 
@@ -194,7 +195,7 @@ export default function SAMLFlowPage() {
 
   if (!selectedProvider) {
     return (
-      <div className="p-8 max-w-4xl mx-auto">
+      <div className="p-4 max-w-4xl mx-auto">
         <Alert variant="warning" title="No Provider Selected">
           Please select or configure a SAML provider first.
         </Alert>
@@ -204,7 +205,7 @@ export default function SAMLFlowPage() {
 
   if (selectedProvider.type !== 'saml') {
     return (
-      <div className="p-8 max-w-4xl mx-auto">
+      <div className="p-4 max-w-4xl mx-auto">
         <Alert variant="error" title="Invalid Provider Type">
           Selected provider is not a SAML provider. Please select a SAML provider.
         </Alert>
@@ -213,13 +214,13 @@ export default function SAMLFlowPage() {
   }
 
   return (
-    <div className="p-8 max-w-7xl mx-auto">
-      <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
+    <div className="p-4 max-w-7xl mx-auto">
+      <div className="flex flex-col md:flex-row md:items-center justify-between mb-4 gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-2">
+          <h1 className="text-lg font-bold text-foreground mb-1">
             SAML Flow Runner
           </h1>
-          <p className="text-gray-600 dark:text-gray-400">
+          <p className="text-xs text-muted-foreground">
             Test SAML 2.0 authentication flows with {selectedProvider.name}
           </p>
         </div>
@@ -233,8 +234,8 @@ export default function SAMLFlowPage() {
         </Button>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 space-y-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <div className="lg:col-span-2 space-y-4">
           <Card title="Flow Configuration">
             <div className="space-y-4">
               <Select
@@ -301,18 +302,18 @@ export default function SAMLFlowPage() {
             <Card title="SAML AuthnRequest">
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium mb-2">Request ID</label>
-                  <p className="text-sm font-mono bg-gray-100 dark:bg-gray-800 p-2 rounded">
+                  <label className="block text-xs font-medium mb-2">Request ID</label>
+                  <p className="text-xs font-mono bg-muted p-2 rounded">
                     {authnRequestId}
                   </p>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-2">XML (Formatted)</label>
+                  <label className="block text-xs font-medium mb-2">XML (Formatted)</label>
                   <CodeBlock code={authnRequestXML} language="xml" maxHeight="300px" />
                 </div>
                 {redirectUrl && (
                   <div>
-                    <label className="block text-sm font-medium mb-2">Redirect URL</label>
+                    <label className="block text-xs font-medium mb-2">Redirect URL</label>
                     <CodeBlock code={redirectUrl} language="text" maxHeight="150px" />
                   </div>
                 )}
@@ -361,7 +362,7 @@ export default function SAMLFlowPage() {
                           SAML response validation failed
                         </div>
                         {validationResult.errors.length > 0 && (
-                          <ul className="list-disc list-inside text-sm">
+                          <ul className="list-disc list-inside text-xs">
                             {validationResult.errors.map((err: string, i: number) => (
                               <li key={i}>{err}</li>
                             ))}
@@ -373,7 +374,7 @@ export default function SAMLFlowPage() {
 
                   {validationResult.warnings.length > 0 && (
                     <Alert variant="warning" title="Warnings">
-                      <ul className="list-disc list-inside text-sm">
+                      <ul className="list-disc list-inside text-xs">
                         {validationResult.warnings.map((warning: string, i: number) => (
                           <li key={i}>{warning}</li>
                         ))}
@@ -382,7 +383,7 @@ export default function SAMLFlowPage() {
                   )}
 
                   {validationResult.issuer && (
-                    <div className="space-y-2 text-sm">
+                    <div className="space-y-2 text-xs">
                       <div className="flex items-center justify-between">
                         <span className="font-medium">Issuer:</span>
                         <span className="font-mono">{validationResult.issuer}</span>
@@ -407,27 +408,27 @@ export default function SAMLFlowPage() {
               {assertions.length > 0 && (
                 <Card title="SAML Assertions">
                   {assertions.map((assertion, index) => (
-                    <div key={index} className="mb-6 last:mb-0">
-                      <h4 className="font-semibold text-gray-900 dark:text-gray-100 mb-3">
+                    <div key={index} className="mb-4 last:mb-0">
+                      <h4 className="font-semibold text-foreground mb-2 text-sm">
                         Assertion {index + 1}
                       </h4>
 
-                      <div className="space-y-3">
-                        <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                          <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                      <div className="space-y-2">
+                        <div className="p-2 bg-muted rounded-lg">
+                          <span className="text-xs font-medium text-muted-foreground">
                             Subject (NameID):
                           </span>
-                          <p className="text-sm text-gray-900 dark:text-gray-100 font-mono mt-1">
+                          <p className="text-xs text-foreground font-mono mt-1">
                             {assertion.subject?.nameId}
                           </p>
                         </div>
 
                         {assertion.conditions && (
-                          <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                          <div className="p-2 bg-muted rounded-lg">
+                            <span className="text-xs font-medium text-muted-foreground">
                               Conditions:
                             </span>
-                            <div className="text-xs space-y-1 mt-2">
+                            <div className="text-xs space-y-1 mt-1">
                               {assertion.conditions.notBefore && (
                                 <p>Not Before: {assertion.conditions.notBefore}</p>
                               )}
@@ -442,17 +443,17 @@ export default function SAMLFlowPage() {
                         )}
 
                         {Object.keys(assertion.attributes).length > 0 && (
-                          <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                            <span className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 block">
+                          <div className="p-2 bg-muted rounded-lg">
+                            <span className="text-xs font-medium text-muted-foreground mb-1 block">
                               Attributes:
                             </span>
-                            <div className="space-y-2">
+                            <div className="space-y-1">
                               {Object.entries(assertion.attributes).map(([key, value]) => (
                                 <div key={key} className="flex items-start gap-3">
-                                  <span className="font-mono text-xs font-medium text-blue-600 dark:text-blue-400 min-w-[150px]">
+                                  <span className="font-mono text-xs font-medium text-primary min-w-[150px]">
                                     {key}
                                   </span>
-                                  <span className="text-xs text-gray-900 dark:text-gray-100 break-all">
+                                  <span className="text-xs text-foreground break-all">
                                     {Array.isArray(value) ? value.join(', ') : String(value)}
                                   </span>
                                 </div>
@@ -462,11 +463,11 @@ export default function SAMLFlowPage() {
                         )}
 
                         {assertion.authnStatement && (
-                          <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                          <div className="p-2 bg-muted rounded-lg">
+                            <span className="text-xs font-medium text-muted-foreground">
                               Authentication:
                             </span>
-                            <div className="text-xs space-y-1 mt-2">
+                            <div className="text-xs space-y-1 mt-1">
                               <p>Instant: {assertion.authnStatement.authnInstant}</p>
                               {assertion.authnStatement.sessionIndex && (
                                 <p>Session Index: {assertion.authnStatement.sessionIndex}</p>
@@ -489,7 +490,7 @@ export default function SAMLFlowPage() {
           )}
         </div>
 
-        <div className="space-y-6">
+        <div className="space-y-4">
           <Card title="Flow Logs">
             <LogViewer logs={logs} maxHeight="600px" />
           </Card>
@@ -498,24 +499,24 @@ export default function SAMLFlowPage() {
             <div className="space-y-2 text-sm">
               {selectedProvider.saml?.entityId && (
                 <div>
-                  <span className="font-medium text-gray-700 dark:text-gray-300">Entity ID:</span>
-                  <p className="text-gray-600 dark:text-gray-400 break-all text-xs">
+                  <span className="text-xs font-medium text-muted-foreground">Entity ID:</span>
+                  <p className="text-muted-foreground break-all text-xs">
                     {selectedProvider.saml.entityId}
                   </p>
                 </div>
               )}
               {selectedProvider.saml?.ssoUrl && (
                 <div>
-                  <span className="font-medium text-gray-700 dark:text-gray-300">SSO URL:</span>
-                  <p className="text-gray-600 dark:text-gray-400 break-all text-xs">
+                  <span className="text-xs font-medium text-muted-foreground">SSO URL:</span>
+                  <p className="text-muted-foreground break-all text-xs">
                     {selectedProvider.saml.ssoUrl}
                   </p>
                 </div>
               )}
               {selectedProvider.saml?.assertionConsumerServiceUrl && (
                 <div>
-                  <span className="font-medium text-gray-700 dark:text-gray-300">ACS URL:</span>
-                  <p className="text-gray-600 dark:text-gray-400 break-all text-xs">
+                  <span className="text-xs font-medium text-muted-foreground">ACS URL:</span>
+                  <p className="text-muted-foreground break-all text-xs">
                     {selectedProvider.saml.assertionConsumerServiceUrl}
                   </p>
                 </div>

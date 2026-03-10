@@ -69,12 +69,12 @@ function CallbackContent() {
   };
 
   return (
-    <div className="p-8 max-w-4xl mx-auto">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-2">
+    <div className="p-4 max-w-4xl mx-auto">
+      <div className="mb-4">
+        <h1 className="text-lg font-bold text-foreground mb-2">
           SAML Assertion Consumer Service (ACS)
         </h1>
-        <p className="text-gray-600 dark:text-gray-400">
+        <p className="text-xs text-muted-foreground">
           SAML Response received from Identity Provider
         </p>
       </div>
@@ -91,13 +91,13 @@ function CallbackContent() {
           Parsing and validating SAML response...
         </Alert>
       ) : validationResult ? (
-        <Alert 
-          variant={validationResult?.valid ? 'success' : 'warning'} 
+        <Alert
+          variant={validationResult?.valid ? 'success' : 'warning'}
           title={validationResult?.valid ? 'Valid SAML Response' : 'SAML Response Received'}
         >
           <div className="flex items-center gap-2">
             <CheckCircle className="w-5 h-5" />
-            {validationResult?.valid 
+            {validationResult?.valid
               ? 'SAML response has been validated successfully.'
               : 'SAML response received but validation has warnings. See details below.'}
           </div>
@@ -119,7 +119,7 @@ function CallbackContent() {
 
       {relayState && (
         <Card title="RelayState" className="mt-6">
-          <p className="text-sm font-mono bg-gray-100 dark:bg-gray-800 p-3 rounded">
+          <p className="text-sm font-mono bg-muted p-3 rounded">
             {relayState}
           </p>
         </Card>
@@ -128,22 +128,22 @@ function CallbackContent() {
       {validationResult && (
         <Card title="Validation Summary" className="mt-6">
           <div className="space-y-3">
-            <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded">
+            <div className="flex items-center justify-between p-3 bg-muted rounded">
               <span className="font-medium">Status:</span>
-              <span className={validationResult.valid ? "text-green-600" : "text-yellow-600"}>
-                {validationResult.valid ? "✓ Valid" : "⚠ Has Warnings"}
+              <span className={validationResult.valid ? "text-status-success" : "text-yellow-600"}>
+                {validationResult.valid ? "Valid" : "Has Warnings"}
               </span>
             </div>
 
             {validationResult.issuer && (
-              <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded">
+              <div className="flex items-center justify-between p-3 bg-muted rounded">
                 <span className="font-medium">Issuer:</span>
                 <span className="font-mono text-sm">{validationResult.issuer}</span>
               </div>
             )}
 
             {validationResult.assertions && validationResult.assertions.length > 0 && (
-              <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded">
+              <div className="p-3 bg-muted rounded">
                 <span className="font-medium block mb-2">Assertions:</span>
                 <span className="text-sm">
                   {validationResult.assertions.length} assertion(s) found
@@ -152,11 +152,11 @@ function CallbackContent() {
             )}
 
             {validationResult.errors && validationResult.errors.length > 0 && (
-              <div className="p-3 bg-red-50 dark:bg-red-900/20 rounded">
-                <span className="font-medium block mb-2 text-red-800 dark:text-red-200">
+              <div className="p-3 bg-status-error/10 rounded">
+                <span className="font-medium block mb-2 text-status-error">
                   Errors:
                 </span>
-                <ul className="list-disc list-inside text-sm text-red-700 dark:text-red-300">
+                <ul className="list-disc list-inside text-sm text-status-error">
                   {validationResult.errors.map((err, i) => (
                     <li key={i}>{err}</li>
                   ))}
@@ -207,10 +207,10 @@ function CallbackContent() {
       </div>
 
       {samlResponse && !error && (
-        <div className="mt-6 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-          <p className="text-sm text-gray-700 dark:text-gray-300">
-            <strong>💡 Tip:</strong> Click &quot;View Full Details in SAML Flow&quot; to see assertions, 
-            attributes, and perform additional validation. The SAML response will be automatically 
+        <div className="mt-6 p-4 bg-primary/10 rounded-lg">
+          <p className="text-xs text-muted-foreground">
+            <strong>Tip:</strong> Click &quot;View Full Details in SAML Flow&quot; to see assertions,
+            attributes, and perform additional validation. The SAML response will be automatically
             loaded into the flow page.
           </p>
         </div>
@@ -222,10 +222,10 @@ function CallbackContent() {
 export default function SAMLCallbackPage() {
   return (
     <Suspense fallback={
-      <div className="p-8 max-w-4xl mx-auto">
+      <div className="p-4 max-w-4xl mx-auto">
         <Card>
           <div className="text-center py-8">
-            <p className="text-gray-600 dark:text-gray-400">Processing SAML response...</p>
+            <p className="text-muted-foreground">Processing SAML response...</p>
           </div>
         </Card>
       </div>
@@ -234,4 +234,3 @@ export default function SAMLCallbackPage() {
     </Suspense>
   );
 }
-

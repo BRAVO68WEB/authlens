@@ -8,6 +8,7 @@ import { Alert } from '@/components/Alert';
 import { CodeBlock } from '@/components/CodeBlock';
 import { downloadFile } from '@/lib/utils';
 import { Upload, Download, Trash2 } from 'lucide-react';
+import { toast } from 'sonner';
 
 export default function WorkspacePage() {
   const { exportWorkspace, importWorkspace, clearWorkspace, providers, presets } = useStore();
@@ -26,7 +27,7 @@ export default function WorkspacePage() {
       const workspace = JSON.parse(importData);
       importWorkspace(workspace);
       setImportData('');
-      alert('Workspace imported successfully!');
+      toast.success('Workspace imported successfully!');
     } catch (error) {
       setError('Invalid workspace JSON: ' + String(error));
     }
@@ -51,19 +52,19 @@ export default function WorkspacePage() {
       )
     ) {
       clearWorkspace();
-      alert('Workspace cleared');
+      toast.success('Workspace cleared');
     }
   };
 
   const workspace = exportWorkspace();
 
   return (
-    <div className="p-8 max-w-4xl mx-auto">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-2">
+    <div className="p-4 max-w-4xl mx-auto">
+      <div className="mb-4">
+        <h1 className="text-lg font-bold text-foreground mb-2">
           Workspace Management
         </h1>
-        <p className="text-gray-600 dark:text-gray-400">
+        <p className="text-xs text-muted-foreground">
           Export and import your workspace configuration
         </p>
       </div>
@@ -72,23 +73,23 @@ export default function WorkspacePage() {
         <Card title="Current Workspace">
           <div className="space-y-4">
             <div className="grid grid-cols-3 gap-4 text-center">
-              <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-                <p className="text-3xl font-bold text-blue-600 dark:text-blue-400">
+              <div className="p-4 bg-primary/10 rounded-lg">
+                <p className="text-lg font-bold text-primary">
                   {providers.length}
                 </p>
-                <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">Providers</p>
+                <p className="text-xs text-muted-foreground mt-1">Providers</p>
               </div>
-              <div className="p-4 bg-green-50 dark:bg-green-900/20 rounded-lg">
-                <p className="text-3xl font-bold text-green-600 dark:text-green-400">
+              <div className="p-4 bg-status-success/10 rounded-lg">
+                <p className="text-lg font-bold text-status-success">
                   {presets.length}
                 </p>
-                <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">Presets</p>
+                <p className="text-xs text-muted-foreground mt-1">Presets</p>
               </div>
-              <div className="p-4 bg-purple-50 dark:bg-purple-900/20 rounded-lg">
-                <p className="text-3xl font-bold text-purple-600 dark:text-purple-400">
+              <div className="p-4 bg-purple-500/10 rounded-lg">
+                <p className="text-lg font-bold text-purple-600 dark:text-purple-400">
                   {workspace.claimRuleSets?.length || 0}
                 </p>
-                <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                <p className="text-xs text-muted-foreground mt-1">
                   Claim Rule Sets
                 </p>
               </div>
@@ -110,19 +111,19 @@ export default function WorkspacePage() {
         <Card title="Import Workspace">
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              <label className="block text-xs font-medium text-muted-foreground mb-2">
                 Upload JSON File
               </label>
               <input
                 type="file"
                 accept=".json"
                 onChange={handleFileUpload}
-                className="block w-full text-sm text-gray-900 dark:text-gray-100 border border-gray-300 dark:border-gray-600 rounded-lg cursor-pointer bg-gray-50 dark:bg-gray-800 focus:outline-none"
+                className="block w-full text-sm text-foreground border border-border rounded-lg cursor-pointer bg-muted focus:outline-none"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              <label className="block text-xs font-medium text-muted-foreground mb-2">
                 Or Paste JSON
               </label>
               <textarea
@@ -130,7 +131,7 @@ export default function WorkspacePage() {
                 onChange={(e) => setImportData(e.target.value)}
                 placeholder='{"version": "1.0.0", "providers": [...], ...}'
                 rows={10}
-                className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm"
+                className="w-full px-3 py-2 rounded-lg border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm"
               />
             </div>
 
@@ -150,4 +151,3 @@ export default function WorkspacePage() {
     </div>
   );
 }
-

@@ -1,10 +1,11 @@
 import { clsx, type ClassValue } from 'clsx';
+import { twMerge } from 'tailwind-merge';
 
 /**
  * Utility function for merging Tailwind classes
  */
 export function cn(...inputs: ClassValue[]) {
-  return clsx(inputs);
+  return twMerge(clsx(inputs));
 }
 
 /**
@@ -87,10 +88,10 @@ export function parseJWT(token: string): { header: unknown; payload: unknown } |
     if (parts.length !== 3) {
       return null;
     }
-    
+
     const header = JSON.parse(new TextDecoder().decode(base64UrlDecode(parts[0])));
     const payload = JSON.parse(new TextDecoder().decode(base64UrlDecode(parts[1])));
-    
+
     return { header, payload };
   } catch (error) {
     return null;
@@ -102,17 +103,17 @@ export function parseJWT(token: string): { header: unknown; payload: unknown } |
  */
 export function buildQueryString(params: Record<string, string | string[] | undefined>): string {
   const searchParams = new URLSearchParams();
-  
+
   Object.entries(params).forEach(([key, value]) => {
     if (value === undefined || value === null) return;
-    
+
     if (Array.isArray(value)) {
       value.forEach(v => searchParams.append(key, v));
     } else {
       searchParams.append(key, value);
     }
   });
-  
+
   return searchParams.toString();
 }
 
@@ -122,11 +123,11 @@ export function buildQueryString(params: Record<string, string | string[] | unde
 export function parseQueryString(query: string): Record<string, string> {
   const params = new URLSearchParams(query);
   const result: Record<string, string> = {};
-  
+
   params.forEach((value, key) => {
     result[key] = value;
   });
-  
+
   return result;
 }
 
@@ -148,17 +149,17 @@ export function redactSensitive(
   if (typeof data !== 'object' || data === null) {
     return data;
   }
-  
+
   if (Array.isArray(data)) {
     return data.map(item => redactSensitive(item, sensitiveKeys));
   }
-  
+
   const result: Record<string, unknown> = {};
-  
+
   Object.entries(data).forEach(([key, value]) => {
     const lowerKey = key.toLowerCase();
     const shouldRedact = sensitiveKeys.some(sk => lowerKey.includes(sk.toLowerCase()));
-    
+
     if (shouldRedact && typeof value === 'string') {
       result[key] = '[REDACTED]';
     } else if (typeof value === 'object' && value !== null) {
@@ -167,7 +168,7 @@ export function redactSensitive(
       result[key] = value;
     }
   });
-  
+
   return result;
 }
 
@@ -186,10 +187,10 @@ export function getNestedValue(obj: unknown, path: string): unknown {
   if (!obj || typeof obj !== 'object') {
     return undefined;
   }
-  
+
   const parts = path.split('.');
   let current: unknown = obj;
-  
+
   for (const part of parts) {
     if (current && typeof current === 'object' && part in current) {
       current = (current as Record<string, unknown>)[part];
@@ -197,7 +198,7 @@ export function getNestedValue(obj: unknown, path: string): unknown {
       return undefined;
     }
   }
-  
+
   return current;
 }
 
@@ -285,13 +286,13 @@ export function formatXML(xml: string): string {
   let formatted = '';
   let indent = 0;
   const tab = '  ';
-  
+
   xml.split(/>\s*</).forEach(node => {
     if (node.match(/^\/\w/)) indent--;
     formatted += tab.repeat(indent) + '<' + node + '>\r\n';
     if (node.match(/^<?\w[^>]*[^/]$/)) indent++;
   });
-  
+
   return formatted.substring(1, formatted.length - 3);
 }
 
@@ -340,17 +341,17 @@ export function requestToCurl(request: {
   body?: string;
 }): string {
   let curl = `curl -X ${request.method.toUpperCase()} '${request.url}'`;
-  
+
   if (request.headers) {
     Object.entries(request.headers).forEach(([key, value]) => {
       curl += ` \\\n  -H '${key}: ${value}'`;
     });
   }
-  
+
   if (request.body) {
     curl += ` \\\n  -d '${request.body.replace(/'/g, "'\\''")}'`;
   }
-  
+
   return curl;
 }
 
@@ -377,13 +378,13 @@ export function validateTimestamps(
   clockSkew: number = 0
 ) {
   const nowSeconds = Math.floor(Date.now() / 1000);
-  
+
   const results = {
     exp: { valid: true, message: '' },
     nbf: { valid: true, message: '' },
     iat: { valid: true, message: '' },
   };
-  
+
   if (payload.exp !== undefined) {
     if (payload.exp + clockSkew < nowSeconds) {
       results.exp = {
@@ -397,7 +398,7 @@ export function validateTimestamps(
       };
     }
   }
-  
+
   if (payload.nbf !== undefined) {
     if (payload.nbf - clockSkew > nowSeconds) {
       results.nbf = {
@@ -411,14 +412,13 @@ export function validateTimestamps(
       };
     }
   }
-  
+
   if (payload.iat !== undefined) {
     results.iat = {
       valid: true,
       message: `Issued at ${new Date(payload.iat * 1000).toISOString()}`,
     };
   }
-  
+
   return results;
 }
-

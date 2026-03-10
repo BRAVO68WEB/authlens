@@ -30,12 +30,12 @@ export default function JWKViewerPage() {
   };
 
   return (
-    <div className="p-8 max-w-4xl mx-auto">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-2">
+    <div className="p-4 max-w-4xl mx-auto">
+      <div className="mb-4">
+        <h1 className="text-lg font-bold text-foreground mb-1">
           JWK Viewer
         </h1>
-        <p className="text-gray-600 dark:text-gray-400">
+        <p className="text-xs text-muted-foreground">
           View and inspect JSON Web Key Sets
         </p>
       </div>
@@ -62,7 +62,7 @@ export default function JWKViewerPage() {
       {jwks && (
         <Card title="JWKS" className="mt-6">
           <div className="space-y-4">
-            <div className="text-sm text-gray-600 dark:text-gray-400">
+            <div className="text-xs text-muted-foreground">
               Found {jwks.keys?.length || 0} key(s)
             </div>
             <CodeBlock code={JSON.stringify(jwks, null, 2)} language="json" />
@@ -72,4 +72,3 @@ export default function JWKViewerPage() {
     </div>
   );
 }
-

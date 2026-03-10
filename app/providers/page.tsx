@@ -11,6 +11,7 @@ import { Plus, Trash2, Edit2, Globe, Upload, Key, Download } from 'lucide-react'
 import { discoverFromIssuer } from '@/lib/oidc';
 import { generateSPCertificate, fetchSAMLMetadata } from '@/lib/saml';
 import { fetchLoginRadiusConfig } from '@/lib/loginradius';
+import { toast } from 'sonner';
 
 export default function ProvidersPage() {
   const { providers, addProvider, updateProvider, deleteProvider } = useStore();
@@ -75,9 +76,9 @@ export default function ProvidersPage() {
           certificates: cert.certificate ? [cert.certificate, ...(formData.saml?.certificates || [])] : formData.saml?.certificates,
         },
       });
-      alert('Certificate generated successfully! You can now download or copy the private key and certificate.');
+      toast.success('Certificate generated successfully!');
     } catch (error) {
-      alert(`Failed to generate certificate: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      toast.error(`Failed to generate certificate: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
       setCertGenerating(false);
     }
@@ -103,7 +104,7 @@ export default function ProvidersPage() {
 
   const handleFetchMetadata = async () => {
     if (!metadataUrl) {
-      alert('Please enter a metadata URL');
+      toast.warning('Please enter a metadata URL');
       return;
     }
 
@@ -120,9 +121,9 @@ export default function ProvidersPage() {
           certificate: metadata.certificate || formData.saml?.certificate,
         },
       });
-      alert('Metadata fetched and parsed successfully!');
+      toast.success('Metadata fetched and parsed successfully!');
     } catch (error) {
-      alert(`Failed to fetch metadata: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      toast.error(`Failed to fetch metadata: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
       setMetadataLoading(false);
     }
@@ -130,7 +131,7 @@ export default function ProvidersPage() {
 
   const handleDownloadPrivateKey = () => {
     if (!formData.saml?.privateKey) {
-      alert('No private key available');
+      toast.warning('No private key available');
       return;
     }
     const blob = new Blob([formData.saml.privateKey], { type: 'text/plain' });
@@ -146,7 +147,7 @@ export default function ProvidersPage() {
 
   const handleDownloadCertificate = () => {
     if (!formData.saml?.certificates || formData.saml.certificates.length === 0) {
-      alert('No certificate available');
+      toast.warning('No certificate available');
       return;
     }
     const blob = new Blob([formData.saml.certificates[0]], { type: 'text/plain' });
@@ -218,13 +219,13 @@ export default function ProvidersPage() {
   };
 
   return (
-    <div className="p-8 max-w-7xl mx-auto">
-      <div className="flex items-center justify-between mb-8">
+    <div className="p-4 max-w-7xl mx-auto">
+      <div className="flex items-center justify-between mb-4">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">
+          <h1 className="text-lg font-bold text-foreground">
             Identity Providers
           </h1>
-          <p className="mt-1 text-gray-600 dark:text-gray-400">
+          <p className="mt-1 text-xs text-muted-foreground">
             Manage your authentication providers and configurations
           </p>
         </div>
@@ -237,7 +238,7 @@ export default function ProvidersPage() {
       </div>
 
       {isAdding && (
-        <Card title={editingId ? 'Edit Provider' : 'Add New Provider'} className="mb-8">
+        <Card title={editingId ? 'Edit Provider' : 'Add New Provider'} className="mb-4">
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <Input
@@ -253,11 +254,11 @@ export default function ProvidersPage() {
                 value={formData.type}
                 onChange={(e) => {
                   const newType = e.target.value as ProtocolType;
-                  const updates: Partial<ProviderConfig> = { 
-                    ...formData, 
-                    type: newType 
+                  const updates: Partial<ProviderConfig> = {
+                    ...formData,
+                    type: newType
                   };
-                  
+
                   // Update redirect URI based on type
                   if (newType === 'oidc') {
                     updates.redirectUris = ['http://localhost:3000/callback/oidc'];
@@ -274,7 +275,7 @@ export default function ProvidersPage() {
                       apiBaseUrl: 'https://api.loginradius.com',
                     };
                   }
-                  
+
                   setFormData(updates);
                 }}
                 options={[
@@ -323,42 +324,46 @@ export default function ProvidersPage() {
               </>
             )}
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Input
-                label="Client ID"
-                value={formData.clientId}
-                onChange={(e) => setFormData({ ...formData, clientId: e.target.value })}
-                placeholder="your-client-id"
-                required
-              />
+            {(formData.type === 'oidc' || formData.type === 'oauth2' || formData.type === 'api') && (
+              <>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <Input
+                    label="Client ID"
+                    value={formData.clientId}
+                    onChange={(e) => setFormData({ ...formData, clientId: e.target.value })}
+                    placeholder="your-client-id"
+                    required
+                  />
 
-              <Input
-                label="Client Secret"
-                type="password"
-                value={formData.clientSecret}
-                onChange={(e) =>
-                  setFormData({ ...formData, clientSecret: e.target.value })
-                }
-                placeholder="your-client-secret"
-                helperText="Optional for public clients"
-              />
-            </div>
+                  <Input
+                    label="Client Secret"
+                    type="password"
+                    value={formData.clientSecret}
+                    onChange={(e) =>
+                      setFormData({ ...formData, clientSecret: e.target.value })
+                    }
+                    placeholder="your-client-secret"
+                    helperText="Optional for public clients"
+                  />
+                </div>
 
-            <div>
-              <Input
-                label="Redirect URI"
-                value={formData.redirectUris?.[0] || ''}
-                onChange={(e) =>
-                  setFormData({ ...formData, redirectUris: [e.target.value] })
-                }
-                placeholder="http://localhost:3000/callback/oidc"
-                required
-              />
-            </div>
+                <div>
+                  <Input
+                    label="Redirect URI"
+                    value={formData.redirectUris?.[0] || ''}
+                    onChange={(e) =>
+                      setFormData({ ...formData, redirectUris: [e.target.value] })
+                    }
+                    placeholder="http://localhost:3000/callback/oidc"
+                    required
+                  />
+                </div>
+              </>
+            )}
 
             {(formData.type === 'oidc' || formData.type === 'oauth2') && (
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                <label className="block text-xs font-medium text-muted-foreground mb-2">
                   Scopes (space-separated)
                 </label>
                 <Input
@@ -376,7 +381,7 @@ export default function ProvidersPage() {
 
             {formData.type === 'saml' ? (
               <div className="space-y-4">
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                <h3 className="text-sm font-semibold text-foreground">
                   SAML Configuration
                 </h3>
                 <Alert variant="info">
@@ -384,8 +389,8 @@ export default function ProvidersPage() {
                 </Alert>
 
                 {/* Metadata Auto-Fetch */}
-                <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-                  <h4 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-2">
+                <div className="p-4 bg-primary/10 rounded-lg">
+                  <h4 className="text-xs font-semibold text-foreground mb-2">
                     Quick Setup: Import from Metadata URL
                   </h4>
                   <div className="flex gap-2">
@@ -405,7 +410,7 @@ export default function ProvidersPage() {
                       Fetch Metadata
                     </Button>
                   </div>
-                  <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                  <p className="text-xs text-muted-foreground mt-1">
                     Automatically populate Entity ID, SSO URL, SLO URL, and Certificate from IdP metadata
                   </p>
                 </div>
@@ -475,7 +480,7 @@ export default function ProvidersPage() {
                     helperText="Identity Provider's Single Logout URL"
                   />
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    <label className="block text-xs font-medium text-muted-foreground mb-2">
                       IdP Certificate (Optional)
                     </label>
                     <div className="flex gap-2 mb-2">
@@ -487,7 +492,7 @@ export default function ProvidersPage() {
                         id="cert-upload"
                       />
                       <label htmlFor="cert-upload" className="cursor-pointer">
-                        <span className="inline-flex items-center gap-2 px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors">
+                        <span className="inline-flex items-center gap-2 px-4 py-2 bg-muted text-foreground rounded-lg hover:bg-muted/80 transition-colors">
                           <Upload className="w-4 h-4" />
                           Upload Certificate
                         </span>
@@ -510,8 +515,8 @@ export default function ProvidersPage() {
                     />
                   </div>
                   {/* SP Certificate Generation */}
-                  <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                    <h4 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-2">
+                  <div className="p-4 bg-muted rounded-lg">
+                    <h4 className="text-xs font-semibold text-foreground mb-2">
                       SP Certificate (for signing requests)
                     </h4>
                     <div className="flex gap-2 mb-2">
@@ -546,11 +551,11 @@ export default function ProvidersPage() {
                       )}
                     </div>
                     {formData.saml?.certificates && formData.saml.certificates.length > 0 && (
-                      <div className="mt-2 p-2 bg-white dark:bg-gray-900 rounded text-xs font-mono overflow-auto max-h-32">
+                      <div className="mt-2 p-2 bg-background rounded text-xs font-mono overflow-auto max-h-32">
                         {formData.saml.certificates[0].substring(0, 200)}...
                       </div>
                     )}
-                    <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                    <p className="text-xs text-muted-foreground mt-1">
                       Generate a certificate to sign SAML requests (required if &quot;Sign AuthnRequests&quot; is enabled)
                     </p>
                   </div>
@@ -574,7 +579,7 @@ export default function ProvidersPage() {
                       />
                       <label
                         htmlFor="signRequests"
-                        className="text-sm font-medium text-gray-700 dark:text-gray-300"
+                        className="text-xs font-medium text-muted-foreground"
                       >
                         Sign AuthnRequests
                       </label>
@@ -597,7 +602,7 @@ export default function ProvidersPage() {
                       />
                       <label
                         htmlFor="wantAssertionsSigned"
-                        className="text-sm font-medium text-gray-700 dark:text-gray-300"
+                        className="text-xs font-medium text-muted-foreground"
                       >
                         Require Signed Assertions
                       </label>
@@ -607,7 +612,7 @@ export default function ProvidersPage() {
               </div>
             ) : formData.type === 'loginradius' ? (
               <div className="space-y-4">
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                <h3 className="text-sm font-semibold text-foreground">
                   LoginRadius CIAM Configuration
                 </h3>
                 <Alert variant="info">
@@ -615,8 +620,8 @@ export default function ProvidersPage() {
                 </Alert>
 
                 {/* Auto-Fetch from Hosted Page */}
-                <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-                  <h4 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-2">
+                <div className="p-4 bg-primary/10 rounded-lg">
+                  <h4 className="text-xs font-semibold text-foreground mb-2">
                     Quick Setup: Fetch from Hosted Page URL
                   </h4>
                   <div className="flex gap-2">
@@ -639,7 +644,7 @@ export default function ProvidersPage() {
                       onClick={async () => {
                         const url = formData.loginradius?.hostedPageUrl;
                         if (!url) {
-                          alert('Please enter a hosted page URL');
+                          toast.warning('Please enter a hosted page URL');
                           return;
                         }
                         setLrFetching(true);
@@ -657,9 +662,9 @@ export default function ProvidersPage() {
                               hostedPageUrl: url,
                             },
                           });
-                          alert('Configuration fetched successfully! Registration form schema and SOTT token extracted.');
+                          toast.success('Configuration fetched successfully!');
                         } catch (error) {
-                          alert(`Failed to fetch config: ${error instanceof Error ? error.message : 'Unknown error'}`);
+                          toast.error(`Failed to fetch config: ${error instanceof Error ? error.message : 'Unknown error'}`);
                         } finally {
                           setLrFetching(false);
                         }
@@ -671,7 +676,7 @@ export default function ProvidersPage() {
                       Fetch Config
                     </Button>
                   </div>
-                  <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                  <p className="text-xs text-muted-foreground mt-1">
                     Automatically extract APIKey, TenantName, Registration Form Schema, and SOTT token from hosted page
                   </p>
                 </div>
@@ -771,11 +776,11 @@ export default function ProvidersPage() {
                     rows={3}
                   />
                   {formData.loginradius?.registrationFormSchema && (
-                    <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                      <h4 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-2">
+                    <div className="p-4 bg-muted rounded-lg">
+                      <h4 className="text-xs font-semibold text-foreground mb-2">
                         Registration Form Schema ({formData.loginradius.registrationFormSchema.length} fields)
                       </h4>
-                      <p className="text-xs text-gray-600 dark:text-gray-400">
+                      <p className="text-xs text-muted-foreground">
                         Schema loaded from hosted page. Required fields will be shown in the registration form.
                       </p>
                     </div>
@@ -784,7 +789,7 @@ export default function ProvidersPage() {
               </div>
             ) : (
               <div className="space-y-4">
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                <h3 className="text-sm font-semibold text-foreground">
                   Endpoints
                 </h3>
                 <div className="grid grid-cols-1 gap-4">
@@ -848,7 +853,7 @@ export default function ProvidersPage() {
               </div>
             )}
 
-            <div className="flex gap-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+            <div className="flex gap-4 pt-4 border-t border-border">
               <Button type="submit">{editingId ? 'Update' : 'Add'} Provider</Button>
               <Button
                 type="button"
@@ -869,11 +874,11 @@ export default function ProvidersPage() {
       {providers.length === 0 && !isAdding ? (
         <Card>
           <div className="text-center py-12">
-            <Globe className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">
+            <Globe className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+            <h3 className="text-sm font-medium text-foreground mb-2">
               No providers configured
             </h3>
-            <p className="text-gray-600 dark:text-gray-400 mb-6">
+            <p className="text-xs text-muted-foreground mb-6">
               Get started by adding your first identity provider
             </p>
             <Button onClick={() => setIsAdding(true)}>
@@ -889,14 +894,14 @@ export default function ProvidersPage() {
               <div className="flex items-start justify-between">
                 <div className="flex-1">
                   <div className="flex items-center gap-3 mb-2">
-                    <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
+                    <h3 className="text-sm font-semibold text-foreground">
                       {provider.name}
                     </h3>
-                    <span className="px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
+                    <span className="px-2 py-1 text-xs font-medium rounded-full bg-primary/10 text-primary">
                       {provider.type.toUpperCase()}
                     </span>
                   </div>
-                  <div className="space-y-1 text-sm text-gray-600 dark:text-gray-400">
+                  <div className="space-y-1 text-xs text-muted-foreground">
                     {provider.discoveryUrl && (
                       <p>
                         <span className="font-medium">Discovery:</span> {provider.discoveryUrl}
@@ -907,7 +912,7 @@ export default function ProvidersPage() {
                         <span className="font-medium">Client ID:</span> {provider.clientId}
                       </p>
                     )}
-                    {provider.redirectUris.length > 0 && (
+                    {provider.redirectUris && provider.redirectUris.length > 0 && (
                       <p>
                         <span className="font-medium">Redirect URI:</span>{' '}
                         {provider.redirectUris[0]}
@@ -944,4 +949,3 @@ export default function ProvidersPage() {
     </div>
   );
 }
-
