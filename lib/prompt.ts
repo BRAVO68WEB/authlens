@@ -30,12 +30,12 @@ export const OIDC_PROMPT_VALUES: {
             description:
                 'Force consent screen even if consent was previously granted.',
         },
-        // {
-        //     value: 'select_account',
-        //     label: 'select_account',
-        //     description:
-        //         'Prompt the user to select an account (useful for multi-account users).',
-        // },
+        {
+            value: 'select_account',
+            label: 'select_account',
+            description:
+                'Prompt the user to select an account (useful for multi-account users).',
+        },
     ];
 
 /**
