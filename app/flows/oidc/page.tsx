@@ -17,7 +17,7 @@ import { logInfo, logError } from '@/lib/logging';
 import type { LogEntry, OIDCResponseType } from '@/lib/types';
 import { Play, Copy, ExternalLink, RefreshCw, Eye, Trash2 } from 'lucide-react';
 import { copyToClipboard, parseJWT } from '@/lib/utils';
-import { toast } from 'sonner';
+import { toast } from 'react-hot-toast';
 
 export default function OIDCFlowPage() {
   const { providers, selectedProviderId } = useStore();
@@ -102,7 +102,7 @@ export default function OIDCFlowPage() {
 
   const handleStartFlow = async () => {
     if (!selectedProvider) {
-      toast.warning('Please select a provider first');
+      toast('Please select a provider first', { icon: '⚠️' });
       return;
     }
 
@@ -132,6 +132,7 @@ export default function OIDCFlowPage() {
         responseType,
         usePKCE: usePKCE && responseType.includes('code'),
         prompt: prompt || undefined,
+        nonce: nonce || undefined,
       });
 
       setAuthUrl(result.url);
@@ -170,7 +171,7 @@ export default function OIDCFlowPage() {
     const codeToExchange = code || authCode;
 
     if (!selectedProvider || !codeToExchange) {
-      toast.warning('Please enter the authorization code');
+      toast('Please enter the authorization code', { icon: '⚠️' });
       return;
     }
 
@@ -287,13 +288,14 @@ export default function OIDCFlowPage() {
       }
     }
 
+    toast.success('Tokens processed successfully');
     // Switch to claims tab
     setActiveTab('claims');
   };
 
   const handleFetchUserInfo = async () => {
     if (!selectedProvider || !tokens.access_token) {
-      toast.warning('Please obtain an access token first');
+      toast('Please obtain an access token first', { icon: '⚠️' });
       return;
     }
 
@@ -317,6 +319,7 @@ export default function OIDCFlowPage() {
       setActiveTab('userinfo');
     } catch (error) {
       addLog(logError('Failed to fetch user info', { error: String(error) }));
+      toast.error('Failed to fetch user info');
     } finally {
       setLoading(false);
     }
@@ -324,7 +327,7 @@ export default function OIDCFlowPage() {
 
   const handleIntrospect = async () => {
     if (!selectedProvider || !tokens.access_token) {
-      toast.warning('Please obtain an access token first');
+      toast('Please obtain an access token first', { icon: '⚠️' });
       return;
     }
 
@@ -350,6 +353,7 @@ export default function OIDCFlowPage() {
       setActiveTab('introspect');
     } catch (error) {
       addLog(logError('Token introspection failed', { error: String(error) }));
+      toast.error('Token introspection failed');
     } finally {
       setLoading(false);
     }
@@ -357,7 +361,7 @@ export default function OIDCFlowPage() {
 
   const handleRevoke = async () => {
     if (!selectedProvider || !tokens.access_token) {
-      toast.warning('Please obtain an access token first');
+      toast('Please obtain an access token first', { icon: '⚠️' });
       return;
     }
 
@@ -383,11 +387,13 @@ export default function OIDCFlowPage() {
       });
 
       addLog(logInfo('Token revoked successfully'));
+      toast.success('Token revoked successfully');
       setTokens({});
       setUserInfo(null);
       setIntrospectionResult(null);
     } catch (error) {
       addLog(logError('Token revocation failed', { error: String(error) }));
+      toast.error('Token revocation failed');
     } finally {
       setLoading(false);
     }
@@ -475,6 +481,14 @@ export default function OIDCFlowPage() {
                 value={scope}
                 onChange={(e) => setScope(e.target.value)}
                 placeholder="openid profile email"
+              />
+              
+              <Input
+                label="Nonce"
+                value={nonce}
+                onChange={(e) => setNonce(e.target.value)}
+                placeholder="Optional nonce parameter"
+                helperText="Used to prevent replay attacks. Will be generated automatically if left empty."
               />
 
               <div>

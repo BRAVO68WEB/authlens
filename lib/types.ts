@@ -21,7 +21,8 @@ export type GrantType =
   | 'password'
   | 'client_credentials'
   | 'refresh_token'
-  | 'urn:ietf:params:oauth:grant-type:device_code';
+  | 'urn:ietf:params:oauth:grant-type:device_code'
+  | 'urn:ietf:params:oauth:grant-type:token-exchange';
 
 export type CodeChallengeMethod = 'plain' | 'S256';
 

@@ -69,9 +69,7 @@ export async function buildAuthorizationUrl(params: {
   codeChallenge?: string;
 }> {
   const state = params.state || generateRandomString();
-  const nonce = params.responseType?.includes('id_token')
-    ? params.nonce || generateRandomString()
-    : undefined;
+  const nonce = params.nonce || generateRandomString();
 
   let codeVerifier: string | undefined;
   let codeChallenge = params.codeChallenge;

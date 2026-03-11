@@ -19,7 +19,7 @@ import {
 import { logInfo, logError } from '@/lib/logging';
 import type { LogEntry, SAMLAssertion, SAMLValidationResult } from '@/lib/types';
 import { Play, FileText, Check, X, ExternalLink } from 'lucide-react';
-import { toast } from 'sonner';
+import { toast } from 'react-hot-toast';
 
 export default function SAMLFlowPage() {
   const { providers, selectedProviderId } = useStore();
@@ -125,6 +125,7 @@ export default function SAMLFlowPage() {
           encodedLength: encoded.length,
           compression: 'pako (raw deflate)',
         }));
+        toast.success('AuthnRequest built successfully');
       } catch (encodeError) {
         addLog(logError('Failed to encode AuthnRequest', {
           error: String(encodeError),
@@ -141,7 +142,7 @@ export default function SAMLFlowPage() {
 
   const handleInitiateSAMLFlow = () => {
     if (!redirectUrl) {
-      toast.warning('Please build the AuthnRequest first');
+      toast('Please build the AuthnRequest first', { icon: '⚠️' });
       return;
     }
 
@@ -153,7 +154,7 @@ export default function SAMLFlowPage() {
     const response = responseToUse || samlResponse;
 
     if (!response) {
-      toast.warning('Please paste a SAML response');
+      toast('Please paste a SAML response', { icon: '⚠️' });
       return;
     }
 
@@ -167,6 +168,7 @@ export default function SAMLFlowPage() {
       setResponseFormatted(formatSAMLXML(parsed.decoded));
 
       addLog(logInfo('SAML response parsed successfully'));
+      toast.success('SAML response parsed successfully');
 
       // Validate response
       if (selectedProvider?.saml) {

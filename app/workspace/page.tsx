@@ -9,7 +9,7 @@ import { CodeBlock } from '@/components/CodeBlock';
 import { Input, Select } from '@/components/Input';
 import { downloadFile } from '@/lib/utils';
 import { Upload, Download, Trash2, Database } from 'lucide-react';
-import { toast } from 'sonner';
+import { toast } from 'react-hot-toast';
 
 export default function WorkspacePage() {
   const { exportWorkspace, importWorkspace, clearWorkspace, providers, presets } = useStore();
@@ -39,6 +39,7 @@ export default function WorkspacePage() {
 
     const json = JSON.stringify(workspace, null, 2);
     downloadFile(json, filename, 'application/json');
+    toast.success('Workspace exported successfully');
   };
 
   const handleImport = () => {

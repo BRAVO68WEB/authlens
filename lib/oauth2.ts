@@ -14,6 +14,7 @@ export function buildOAuth2AuthorizationUrl(params: {
   redirectUri: string;
   scope?: string;
   state?: string;
+  nonce?: string;
   responseType?: 'code' | 'token';
   prompt?: string;
   codeChallenge?: string;
@@ -25,6 +26,7 @@ export function buildOAuth2AuthorizationUrl(params: {
     response_type: params.responseType || 'code',
     ...(params.scope && { scope: params.scope }),
     ...(params.state && { state: params.state }),
+    ...(params.nonce && { nonce: params.nonce }),
     ...(params.prompt && { prompt: params.prompt }),
     ...(params.codeChallenge && {
       code_challenge: params.codeChallenge,
@@ -400,3 +402,51 @@ export async function revokeToken(params: {
   }
 }
 
+/**
+ * Request tokens using Token Exchange flow (RFC 8693)
+ */
+export async function requestTokenExchange(params: {
+  tokenEndpoint: string;
+  subjectToken: string;
+  subjectTokenType: string;
+  clientId: string;
+  clientSecret?: string;
+  scope?: string;
+  resource?: string;
+  audience?: string;
+}): Promise<TokenResponse> {
+  const body: Record<string, string> = {
+    grant_type: 'urn:ietf:params:oauth:grant-type:token-exchange',
+    subject_token: params.subjectToken,
+    subject_token_type: params.subjectTokenType,
+    client_id: params.clientId,
+  };
+
+  if (params.scope) body.scope = params.scope;
+  if (params.resource) body.resource = params.resource;
+  if (params.audience) body.audience = params.audience;
+
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/x-www-form-urlencoded',
+  };
+
+  if (params.clientSecret) {
+    const credentials = btoa(`${params.clientId}:${params.clientSecret}`);
+    headers['Authorization'] = `Basic ${credentials}`;
+  }
+
+  const response = await fetch(params.tokenEndpoint, {
+    method: 'POST',
+    headers,
+    body: objectToFormData(body).toString(),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(
+      `Token exchange failed: ${errorData.error_description || errorData.error || response.statusText}`
+    );
+  }
+
+  return response.json();
+}

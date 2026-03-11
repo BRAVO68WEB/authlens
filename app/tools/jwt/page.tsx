@@ -10,7 +10,7 @@ import { JWTInspector } from '@/components/token/JWTInspector';
 import { validateJWT, decodeJWT } from '@/lib/jwt';
 import { parseJWT } from '@/lib/utils';
 import { CheckCircle, XCircle, AlertTriangle } from 'lucide-react';
-import { toast } from 'sonner';
+import { toast } from 'react-hot-toast';
 
 export default function JWTValidatorPage() {
   const [token, setToken] = useState('');
@@ -25,6 +25,7 @@ export default function JWTValidatorPage() {
       if (result) {
         setDecoded(result);
         setValidation(null);
+        toast.success('JWT decoded successfully');
       } else {
         toast.error('Invalid JWT format');
       }
@@ -35,7 +36,7 @@ export default function JWTValidatorPage() {
 
   const handleValidate = async () => {
     if (!jwksUrl) {
-      toast.warning('Please provide a JWKS URL for signature validation');
+      toast('Please provide a JWKS URL for signature validation', { icon: '⚠️' });
       return;
     }
 
@@ -48,6 +49,11 @@ export default function JWTValidatorPage() {
       });
 
       setValidation(result);
+      if (result.valid) {
+        toast.success('Token validation successful');
+      } else {
+        toast.error('Token validation failed');
+      }
       if (!decoded) {
         setDecoded({ header: result.header, payload: result.payload });
       }
