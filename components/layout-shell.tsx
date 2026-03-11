@@ -6,7 +6,7 @@ import { AppSidebar } from '@/components/app-sidebar';
 import { WorkspaceTabs } from '@/components/workspace-tabs';
 import { AppHeader } from '@/components/app-header';
 import { CommandPalette } from '@/components/command-palette';
-import { Toaster } from '@/components/ui/sonner';
+import { Toaster } from 'react-hot-toast';
 
 export function LayoutShell({ children }: { children: React.ReactNode }) {
   return (
@@ -23,7 +23,7 @@ export function LayoutShell({ children }: { children: React.ReactNode }) {
           </div>
         </div>
         <CommandPalette />
-        <Toaster />
+        <Toaster position="top-right" reverseOrder={false} />
       </SidebarProvider>
     </TooltipProvider>
   );

@@ -17,7 +17,7 @@ import { logInfo, logError } from '@/lib/logging';
 import type { LogEntry, OIDCResponseType } from '@/lib/types';
 import { Play, Copy, ExternalLink, RefreshCw, Eye, Trash2 } from 'lucide-react';
 import { copyToClipboard, parseJWT } from '@/lib/utils';
-import { toast } from 'sonner';
+import { toast } from 'react-hot-toast';
 
 export default function OIDCFlowPage() {
   const { providers, selectedProviderId } = useStore();
@@ -66,29 +66,43 @@ export default function OIDCFlowPage() {
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
       if (event.data?.type === 'oidc_callback') {
-        const { code, state: receivedState, error } = event.data;
+        const { code, access_token, id_token, state: receivedState, error } = event.data;
 
         if (error) {
           addLog(logError('Authorization failed', { error }));
           return;
         }
 
-        if (code && receivedState === state) {
+        if (receivedState !== state) {
+          addLog(logError('State mismatch - possible CSRF attack'));
+          return;
+        }
+
+        if (code) {
           setAuthCode(code);
           addLog(logInfo('Authorization code received from callback', { code: '***' }));
-        } else if (receivedState !== state) {
-          addLog(logError('State mismatch - possible CSRF attack'));
+        }
+
+        // Handle direct tokens (Implicit/Hybrid flow)
+        if (access_token || id_token) {
+          addLog(logInfo('Tokens received directly from callback (Implicit/Hybrid flow)'));
+          processTokens({
+            access_token,
+            id_token,
+            token_type: event.data.token_type || 'Bearer',
+            expires_in: event.data.expires_in ? parseInt(event.data.expires_in) : undefined,
+          });
         }
       }
     };
 
     window.addEventListener('message', handleMessage);
     return () => window.removeEventListener('message', handleMessage);
-  }, [state]);
+  }, [state, selectedProvider]); // Added selectedProvider to dependencies for processTokens
 
   const handleStartFlow = async () => {
     if (!selectedProvider) {
-      toast.warning('Please select a provider first');
+      toast('Please select a provider first', { icon: '⚠️' });
       return;
     }
 
@@ -118,6 +132,7 @@ export default function OIDCFlowPage() {
         responseType,
         usePKCE: usePKCE && responseType.includes('code'),
         prompt: prompt || undefined,
+        nonce: nonce || undefined,
       });
 
       setAuthUrl(result.url);
@@ -156,7 +171,7 @@ export default function OIDCFlowPage() {
     const codeToExchange = code || authCode;
 
     if (!selectedProvider || !codeToExchange) {
-      toast.warning('Please enter the authorization code');
+      toast('Please enter the authorization code', { icon: '⚠️' });
       return;
     }
 
@@ -179,85 +194,7 @@ export default function OIDCFlowPage() {
         codeVerifier: usePKCE ? codeVerifier : undefined,
       });
 
-      setTokens(tokenResponse);
-
-      addLog(
-        logInfo('Tokens received successfully', {
-          has_access_token: !!tokenResponse.access_token,
-          has_id_token: !!tokenResponse.id_token,
-          has_refresh_token: !!tokenResponse.refresh_token,
-          expires_in: tokenResponse.expires_in,
-        })
-      );
-
-      // Decode and validate ID token
-      if (tokenResponse.id_token) {
-        const idParsed = parseJWT(tokenResponse.id_token);
-        if (idParsed && idParsed.payload) {
-          setIdTokenClaims(idParsed.payload);
-          addLog(logInfo('ID token decoded', { claims: Object.keys(idParsed.payload as object) }));
-        }
-
-        if (selectedProvider.endpoints.jwksUrl) {
-          try {
-            const validation = await validateJWT({
-              token: tokenResponse.id_token,
-              jwksUrl: selectedProvider.endpoints.jwksUrl,
-              audience: selectedProvider.clientId,
-              clockSkew: selectedProvider.advanced.clockSkew || 0,
-            });
-
-            setIdTokenValidation(validation);
-
-            if (validation.valid) {
-              addLog(logInfo('ID token validated successfully'));
-            } else {
-              addLog(
-                logError('ID token validation failed', {
-                  errors: validation.errors,
-                })
-              );
-            }
-          } catch (error) {
-            addLog(logError('Failed to validate ID token', { error: String(error) }));
-          }
-        }
-      }
-
-      // Decode access token if it's a JWT
-      if (tokenResponse.access_token) {
-        const accessParsed = parseJWT(tokenResponse.access_token);
-        if (accessParsed && accessParsed.payload) {
-          setAccessTokenClaims(accessParsed.payload);
-          addLog(logInfo('Access token decoded (JWT format)', { claims: Object.keys(accessParsed.payload as object) }));
-
-          // Validate access token if it's a JWT
-          if (selectedProvider.endpoints.jwksUrl) {
-            try {
-              const validation = await validateJWT({
-                token: tokenResponse.access_token,
-                jwksUrl: selectedProvider.endpoints.jwksUrl,
-                clockSkew: selectedProvider.advanced.clockSkew || 0,
-              });
-
-              setAccessTokenValidation(validation);
-
-              if (validation.valid) {
-                addLog(logInfo('Access token validated successfully'));
-              } else {
-                addLog(logError('Access token validation failed', { errors: validation.errors }));
-              }
-            } catch (error) {
-              addLog(logError('Failed to validate access token', { error: String(error) }));
-            }
-          }
-        } else {
-          addLog(logInfo('Access token is opaque (not JWT format)'));
-        }
-      }
-
-      // Switch to claims tab
-      setActiveTab('claims');
+      await processTokens(tokenResponse);
     } catch (error) {
       addLog(logError('Token exchange failed', { error: String(error) }));
     } finally {
@@ -265,9 +202,100 @@ export default function OIDCFlowPage() {
     }
   };
 
+  const processTokens = async (tokenResponse: {
+    access_token?: string;
+    id_token?: string;
+    refresh_token?: string;
+    token_type?: string;
+    expires_in?: number;
+  }) => {
+    if (!selectedProvider) return;
+
+    setTokens(tokenResponse);
+
+    addLog(
+      logInfo('Processing received tokens', {
+        has_access_token: !!tokenResponse.access_token,
+        has_id_token: !!tokenResponse.id_token,
+        has_refresh_token: !!tokenResponse.refresh_token,
+        expires_in: tokenResponse.expires_in,
+      })
+    );
+
+    // Decode and validate ID token
+    if (tokenResponse.id_token) {
+      const idParsed = parseJWT(tokenResponse.id_token);
+      if (idParsed && idParsed.payload) {
+        setIdTokenClaims(idParsed.payload);
+        addLog(logInfo('ID token decoded', { claims: Object.keys(idParsed.payload as object) }));
+      }
+
+      if (selectedProvider.endpoints.jwksUrl) {
+        try {
+          const validation = await validateJWT({
+            token: tokenResponse.id_token,
+            jwksUrl: selectedProvider.endpoints.jwksUrl,
+            audience: selectedProvider.clientId,
+            clockSkew: selectedProvider.advanced.clockSkew || 0,
+          });
+
+          setIdTokenValidation(validation);
+
+          if (validation.valid) {
+            addLog(logInfo('ID token validated successfully'));
+          } else {
+            addLog(
+              logError('ID token validation failed', {
+                errors: validation.errors,
+              })
+            );
+          }
+        } catch (error) {
+          addLog(logError('Failed to validate ID token', { error: String(error) }));
+        }
+      }
+    }
+
+    // Decode access token if it's a JWT
+    if (tokenResponse.access_token) {
+      const accessParsed = parseJWT(tokenResponse.access_token);
+      if (accessParsed && accessParsed.payload) {
+        setAccessTokenClaims(accessParsed.payload);
+        addLog(logInfo('Access token decoded (JWT format)', { claims: Object.keys(accessParsed.payload as object) }));
+
+        // Validate access token if it's a JWT
+        if (selectedProvider.endpoints.jwksUrl) {
+          try {
+            const validation = await validateJWT({
+              token: tokenResponse.access_token,
+              jwksUrl: selectedProvider.endpoints.jwksUrl,
+              clockSkew: selectedProvider.advanced.clockSkew || 0,
+            });
+
+            setAccessTokenValidation(validation);
+
+            if (validation.valid) {
+              addLog(logInfo('Access token validated successfully'));
+            } else {
+              addLog(logError('Access token validation failed', { errors: validation.errors }));
+            }
+          } catch (error) {
+            addLog(logError('Failed to validate access token', { error: String(error) }));
+          }
+        }
+      } else {
+        addLog(logInfo('Access token is opaque (not JWT format)'));
+      }
+    }
+
+    toast.success('Tokens processed successfully');
+    // Switch to claims tab
+    setActiveTab('claims');
+  };
+
   const handleFetchUserInfo = async () => {
     if (!selectedProvider || !tokens.access_token) {
-      toast.warning('Please obtain an access token first');
+      toast('Please obtain an access token first', { icon: '⚠️' });
       return;
     }
 
@@ -291,6 +319,7 @@ export default function OIDCFlowPage() {
       setActiveTab('userinfo');
     } catch (error) {
       addLog(logError('Failed to fetch user info', { error: String(error) }));
+      toast.error('Failed to fetch user info');
     } finally {
       setLoading(false);
     }
@@ -298,7 +327,7 @@ export default function OIDCFlowPage() {
 
   const handleIntrospect = async () => {
     if (!selectedProvider || !tokens.access_token) {
-      toast.warning('Please obtain an access token first');
+      toast('Please obtain an access token first', { icon: '⚠️' });
       return;
     }
 
@@ -324,6 +353,7 @@ export default function OIDCFlowPage() {
       setActiveTab('introspect');
     } catch (error) {
       addLog(logError('Token introspection failed', { error: String(error) }));
+      toast.error('Token introspection failed');
     } finally {
       setLoading(false);
     }
@@ -331,7 +361,7 @@ export default function OIDCFlowPage() {
 
   const handleRevoke = async () => {
     if (!selectedProvider || !tokens.access_token) {
-      toast.warning('Please obtain an access token first');
+      toast('Please obtain an access token first', { icon: '⚠️' });
       return;
     }
 
@@ -357,11 +387,13 @@ export default function OIDCFlowPage() {
       });
 
       addLog(logInfo('Token revoked successfully'));
+      toast.success('Token revoked successfully');
       setTokens({});
       setUserInfo(null);
       setIntrospectionResult(null);
     } catch (error) {
       addLog(logError('Token revocation failed', { error: String(error) }));
+      toast.error('Token revocation failed');
     } finally {
       setLoading(false);
     }
@@ -450,14 +482,25 @@ export default function OIDCFlowPage() {
                 onChange={(e) => setScope(e.target.value)}
                 placeholder="openid profile email"
               />
+              
+              <Input
+                label="Nonce"
+                value={nonce}
+                onChange={(e) => setNonce(e.target.value)}
+                placeholder="Optional nonce parameter"
+                helperText="Used to prevent replay attacks. Will be generated automatically if left empty."
+              />
 
               <div>
                 <label className="block text-xs font-medium text-muted-foreground mb-1">
                   Redirect URI
                 </label>
-                <p className="px-3 py-2 rounded-lg border border-border bg-muted text-foreground text-sm font-mono break-all">
-                  {redirectUri || 'Not configured'}
-                </p>
+                <Input
+                  value={redirectUri}
+                  onChange={(e) => setRedirectUri(e.target.value)}
+                  placeholder="https://your-app.com/callback"
+                  className="font-mono text-sm"
+                />
               </div>
 
               {/* Prompt Parameter */}

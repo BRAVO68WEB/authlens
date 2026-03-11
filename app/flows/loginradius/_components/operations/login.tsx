@@ -5,7 +5,7 @@ import { Input } from '@/components/Input';
 import { Button } from '@/components/Button';
 import { Alert } from '@/components/Alert';
 import { LogIn } from 'lucide-react';
-import { toast } from 'sonner';
+import { toast } from 'react-hot-toast';
 import { buildLoginRadiusApiUrl } from '@/lib/loginradius';
 import { logInfo, logError } from '@/lib/logging';
 import { OperationRunner } from '../operation-runner';
@@ -46,7 +46,7 @@ function LoginOperation({ provider, accessToken, setAccessToken, addLog }: Opera
                 return;
               }
               if (!email || !password) {
-                toast.warning('Please enter email and password');
+                toast('Please enter email and password', { icon: '⚠️' });
                 return;
               }
 
@@ -71,8 +71,10 @@ function LoginOperation({ provider, accessToken, setAccessToken, addLog }: Opera
                     setAccessToken(data.access_token as string);
                   }
                   addLog(logInfo('Login successful'));
+                  toast.success('Login successful');
                 } else {
                   addLog(logError('Login failed', res.data as Record<string, unknown>));
+                  toast.error('Login failed');
                 }
               } catch {
                 addLog(logError('Login request failed'));

@@ -1,10 +1,11 @@
 'use client';
 
+import { useId } from 'react';
 import { cn } from '@/lib/utils';
 import { Input as ShadInput } from '@/components/ui/input';
 import { Textarea as ShadTextarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { useId } from 'react';
+
 
 interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   label?: string;
@@ -20,8 +21,8 @@ export function Input({
   id,
   ...props
 }: InputProps) {
-  const autoId = useId();
-  const inputId = id || autoId;
+  const reactId = useId();
+  const inputId = id || reactId;
 
   return (
     <div className="w-full space-y-1">
@@ -32,6 +33,7 @@ export function Input({
       )}
       <ShadInput
         id={inputId}
+        suppressHydrationWarning={true}
         className={cn(
           'h-8 text-xs',
           error && 'border-destructive focus-visible:ring-destructive',
@@ -61,8 +63,8 @@ export function TextArea({
   id,
   ...props
 }: TextAreaProps) {
-  const autoId = useId();
-  const inputId = id || autoId;
+  const reactId = useId();
+  const inputId = id || reactId;
 
   return (
     <div className="w-full space-y-1">
@@ -73,6 +75,7 @@ export function TextArea({
       )}
       <ShadTextarea
         id={inputId}
+        suppressHydrationWarning={true}
         className={cn(
           'text-xs font-mono',
           error && 'border-destructive focus-visible:ring-destructive',
@@ -104,8 +107,8 @@ export function Select({
   id,
   ...props
 }: SelectProps) {
-  const autoId = useId();
-  const inputId = id || autoId;
+  const reactId = useId();
+  const inputId = id || reactId;
 
   return (
     <div className="w-full space-y-1">
@@ -116,6 +119,7 @@ export function Select({
       )}
       <select
         id={inputId}
+        suppressHydrationWarning={true}
         className={cn(
           'flex h-8 w-full rounded-md border border-input bg-background px-2 py-1 text-xs ring-offset-background focus:outline-none focus:ring-1 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-50',
           error && 'border-destructive focus:ring-destructive',

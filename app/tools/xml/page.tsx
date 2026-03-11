@@ -8,7 +8,7 @@ import { CodeBlock } from '@/components/CodeBlock';
 import { formatSAMLXML } from '@/lib/saml';
 import { decodeBase64 } from '@/lib/utils';
 import { FileText } from 'lucide-react';
-import { toast } from 'sonner';
+import { toast } from 'react-hot-toast';
 
 export default function XMLFormatterPage() {
   const [input, setInput] = useState('');
@@ -23,6 +23,7 @@ export default function XMLFormatterPage() {
       }
       const result = formatSAMLXML(xml);
       setFormatted(result);
+      toast.success('XML formatted successfully');
     } catch (error) {
       toast.error('Failed to format XML: ' + String(error));
     }

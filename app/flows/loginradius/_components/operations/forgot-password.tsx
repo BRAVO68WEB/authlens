@@ -5,7 +5,7 @@ import { Input } from '@/components/Input';
 import { Button } from '@/components/Button';
 import { Alert } from '@/components/Alert';
 import { KeyRound } from 'lucide-react';
-import { toast } from 'sonner';
+import { toast } from 'react-hot-toast';
 import { logInfo, logError } from '@/lib/logging';
 import { OperationRunner } from '../operation-runner';
 import type { OperationProps, LROperation } from '../operation-runner';
@@ -54,7 +54,7 @@ function ForgotPasswordOperation({ provider, addLog }: OperationProps) {
                 return;
               }
               if (!email && !username) {
-                toast.warning('Please enter either Email or Username');
+                toast('Please enter either Email or Username', { icon: '⚠️' });
                 return;
               }
 
@@ -80,6 +80,7 @@ function ForgotPasswordOperation({ provider, addLog }: OperationProps) {
 
                 if (res.ok) {
                   addLog(logInfo('Forgot password request sent successfully'));
+                  toast.success('Reset link sent successfully');
                 } else {
                   addLog(logError('Forgot password failed', res.data as Record<string, unknown>));
                 }

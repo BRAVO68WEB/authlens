@@ -5,7 +5,7 @@ import { Input } from '@/components/Input';
 import { Button } from '@/components/Button';
 import { Alert } from '@/components/Alert';
 import { KeyRound } from 'lucide-react';
-import { toast } from 'sonner';
+import { toast } from 'react-hot-toast';
 import { logInfo, logError } from '@/lib/logging';
 import { OperationRunner } from '../operation-runner';
 import type { OperationProps, LROperation } from '../operation-runner';
@@ -53,11 +53,11 @@ function ChangePasswordOperation({ provider, accessToken, addLog }: OperationPro
                 return;
               }
               if (!accessToken) {
-                toast.warning('Please login first to get an access token');
+                toast('Please login first to get an access token', { icon: '⚠️' });
                 return;
               }
               if (!oldPassword || !newPassword) {
-                toast.warning('Please enter both old and new passwords');
+                toast('Please enter both old and new passwords', { icon: '⚠️' });
                 return;
               }
 
@@ -81,10 +81,11 @@ function ChangePasswordOperation({ provider, accessToken, addLog }: OperationPro
                   }),
                 });
 
-                if (res.ok) {
-                  addLog(logInfo('Password changed successfully'));
-                  setOldPassword('');
-                  setNewPassword('');
+                 if (res.ok) {
+                   addLog(logInfo('Password changed successfully'));
+                   toast.success('Password changed successfully');
+                   setOldPassword('');
+                   setNewPassword('');
                 } else {
                   addLog(logError('Change password failed', res.data as Record<string, unknown>));
                 }

@@ -10,7 +10,7 @@ import { checkClaim } from '@/lib/jwt';
 import type { ClaimRule, ClaimRuleOperator } from '@/lib/types';
 import { Plus, Trash2, Play, CheckCircle, XCircle } from 'lucide-react';
 import { generateId, parseJWT } from '@/lib/utils';
-import { toast } from 'sonner';
+import { toast } from 'react-hot-toast';
 
 export default function ClaimsCheckerPage() {
   const [token, setToken] = useState('');
@@ -64,7 +64,7 @@ export default function ClaimsCheckerPage() {
 
       if (sourceType === 'jwt') {
         if (!token) {
-          toast.warning('Please paste a JWT token');
+          toast('Please paste a JWT token', { icon: '⚠️' });
           return;
         }
         const parsed = parseJWT(token);
@@ -75,13 +75,14 @@ export default function ClaimsCheckerPage() {
         data = parsed.payload;
       } else {
         if (!jsonData) {
-          toast.warning('Please paste JSON data');
+          toast('Please paste JSON data', { icon: '⚠️' });
           return;
         }
         data = JSON.parse(jsonData);
       }
 
       setPayload(data);
+      toast.success('Source data parsed successfully');
     } catch (error) {
       toast.error('Failed to parse: ' + String(error));
     }
@@ -89,17 +90,18 @@ export default function ClaimsCheckerPage() {
 
   const handleRunChecks = () => {
     if (!payload) {
-      toast.warning('Please parse JWT or JSON data first');
+      toast('Please parse JWT or JSON data first', { icon: '⚠️' });
       return;
     }
 
     if (rules.length === 0) {
-      toast.warning('Please add at least one rule');
+      toast('Please add at least one rule', { icon: '⚠️' });
       return;
     }
 
     const checkResults = rules.map((rule) => checkClaim(payload, rule));
     setResults(checkResults);
+    toast.success('Validation completed');
   };
 
   const handleLoadCommonRules = () => {

@@ -15,13 +15,29 @@ function CallbackContent() {
   const router = useRouter();
   const [messageSent, setMessageSent] = useState(false);
 
-  // Derive params from searchParams without using state
-  const params = useMemo(() => {
+  const [params, setParams] = useState<Record<string, string>>({});
+
+  // Parse params from both searchParams AND hash fragment after hydration
+  useEffect(() => {
     const paramsObj: Record<string, string> = {};
-    searchParams.forEach((value, key) => {
-      paramsObj[key] = value;
-    });
-    return paramsObj;
+
+    // 1. Parse search params (?)
+    if (searchParams) {
+      searchParams.forEach((value, key) => {
+        paramsObj[key] = value;
+      });
+    }
+
+    // 2. Parse hash fragment (#) - critical for Implicit/Hybrid flows
+    if (window.location.hash) {
+      const hash = window.location.hash.substring(1); // remove #
+      const hashParams = new URLSearchParams(hash);
+      hashParams.forEach((value, key) => {
+        paramsObj[key] = value;
+      });
+    }
+
+    setParams(paramsObj);
   }, [searchParams]);
 
   // Derive error from params
@@ -37,6 +53,8 @@ function CallbackContent() {
           {
             type: 'oidc_callback',
             code: params.code,
+            access_token: params.access_token,
+            id_token: params.id_token,
             state: params.state,
             error: params.error,
             error_description: params.error_description,
@@ -106,11 +124,11 @@ function CallbackContent() {
       </Card>
 
       <div className="mt-6 flex gap-4">
-        {!error && params.code && (
+        {!error && (params.code || params.access_token || params.id_token) && (
           <Button onClick={handleContinue} disabled={messageSent}>
             {messageSent ? 'Redirecting...' : (
               <>
-                Next Step - Continue to Token Exchange
+                Next Step {params.code ? '- Continue to Token Exchange' : '- View Results'}
                 <ArrowRight className="w-4 h-4" />
               </>
             )}
@@ -129,11 +147,11 @@ function CallbackContent() {
         </Link>
       </div>
 
-      {!error && params.code && (
-        <div className="mt-6 p-4 bg-primary/10 rounded-lg">
-          <p className="text-xs text-muted-foreground">
-            <strong>Tip:</strong> Click &quot;Next Step&quot; to automatically send this authorization code
-            to the OIDC flow page for token exchange. The window will close automatically after sending.
+      {!error && (params.code || params.access_token || params.id_token) && (
+        <div className="mt-6 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+          <p className="text-sm text-gray-700 dark:text-gray-300">
+            <strong>💡 Tip:</strong> Click &quot;Next Step&quot; to automatically send these
+            details to the OIDC flow page. The window will close automatically after sending.
           </p>
         </div>
       )}

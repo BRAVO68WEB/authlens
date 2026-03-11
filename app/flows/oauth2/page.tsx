@@ -20,17 +20,18 @@ import {
   introspectToken,
   revokeToken,
   refreshToken,
+  requestTokenExchange,
 } from '@/lib/oauth2';
 import { generateRandomString, generateCodeVerifier, generateCodeChallenge, parseJWT } from '@/lib/utils';
 import { logInfo, logError } from '@/lib/logging';
 import type { LogEntry } from '@/lib/types';
 import { Play, RefreshCw, Key, Monitor, Copy, Trash2, Eye, ExternalLink } from 'lucide-react';
-import { toast } from 'sonner';
+import { toast } from 'react-hot-toast';
 
-type GrantType = 'authorization_code' | 'implicit' | 'password' | 'client_credentials' | 'device_code';
+type GrantType = 'authorization_code' | 'implicit' | 'password' | 'client_credentials' | 'device_code' | 'token_exchange';
 
 export default function OAuth2FlowPage() {
-  const { providers, selectedProviderId } = useStore();
+  const { providers, selectedProviderId, flowRuns } = useStore();
   const selectedProvider = providers.find((p) => p.id === selectedProviderId);
 
   const [grantType, setGrantType] = useState<GrantType>('authorization_code');
@@ -42,6 +43,7 @@ export default function OAuth2FlowPage() {
   const [state, setState] = useState('');
   const [codeVerifier, setCodeVerifier] = useState('');
   const [authCode, setAuthCode] = useState('');
+  const [nonce, setNonce] = useState('');
   const [usePKCE, setUsePKCE] = useState(true);
   const [redirectUri, setRedirectUri] = useState(selectedProvider?.redirectUris?.[0] || '');
   const [localClientId, setLocalClientId] = useState(selectedProvider?.clientId || '');
@@ -61,6 +63,11 @@ export default function OAuth2FlowPage() {
   const [verificationUriComplete, setVerificationUriComplete] = useState('');
   const [interval, setInterval] = useState(5);
   const [polling, setPolling] = useState(false);
+  
+  // Token exchange
+  const [subjectToken, setSubjectToken] = useState('');
+  const [subjectTokenType, setSubjectTokenType] = useState('urn:ietf:params:oauth:token-type:access_token');
+  const [customSubjectTokenType, setCustomSubjectTokenType] = useState('');
 
   // Common
   const [scope, setScope] = useState('profile email');
@@ -71,6 +78,7 @@ export default function OAuth2FlowPage() {
     expires_in?: number;
     refresh_token?: string;
     scope?: string;
+    id_token?: string;
   }>({});
   const [tokenClaims, setTokenClaims] = useState<any>(null);
   const [introspectionResult, setIntrospectionResult] = useState<any>(null);
@@ -120,6 +128,9 @@ export default function OAuth2FlowPage() {
       const newState = generateRandomString();
       setState(newState);
 
+      const currentNonce = nonce || generateRandomString();
+      if (!nonce) setNonce(currentNonce);
+
       let challenge: string | undefined;
       let verifier: string | undefined;
 
@@ -133,11 +144,12 @@ export default function OAuth2FlowPage() {
       const url = buildOAuth2AuthorizationUrl({
         authorizationEndpoint: selectedProvider.endpoints.authorizationUrl,
         clientId: selectedProvider.clientId!,
-        redirectUri: selectedProvider.redirectUris?.[0] || '',
+        redirectUri: redirectUri,
         scope,
         state: newState,
         responseType: 'code',
         prompt: prompt || undefined,
+        nonce: currentNonce,
         codeChallenge: challenge,
         codeChallengeMethod: 'S256',
       });
@@ -171,12 +183,13 @@ export default function OAuth2FlowPage() {
         code: codeToExchange,
         clientId: selectedProvider.clientId!,
         clientSecret: selectedProvider.clientSecret,
-        redirectUri: selectedProvider.redirectUris?.[0] || '',
+        redirectUri: redirectUri,
         codeVerifier: usePKCE ? codeVerifier : undefined,
       });
 
       setTokens(tokenResponse);
       addLog(logInfo('Tokens received successfully'));
+      toast.success('Tokens received successfully');
 
       // Try to decode token if JWT
       const parsed = parseJWT(tokenResponse.access_token);
@@ -186,6 +199,7 @@ export default function OAuth2FlowPage() {
       }
     } catch (error) {
       addLog(logError('Token exchange failed', { error: String(error) }));
+      toast.error('Token exchange failed');
     } finally {
       setLoading(false);
     }
@@ -198,7 +212,7 @@ export default function OAuth2FlowPage() {
     }
 
     if (!username || !password) {
-      toast.warning('Please enter username and password');
+      toast('Please enter username and password', { icon: '⚠️' });
       return;
     }
 
@@ -220,11 +234,13 @@ export default function OAuth2FlowPage() {
 
       setTokens(tokenResponse);
       addLog(logInfo('Tokens received successfully'));
+      toast.success('Tokens received successfully');
 
       const parsed = parseJWT(tokenResponse.access_token);
       if (parsed) setTokenClaims(parsed.payload);
     } catch (error) {
       addLog(logError('Password grant failed', { error: String(error) }));
+      toast.error('Password grant failed');
     } finally {
       setLoading(false);
     }
@@ -262,6 +278,7 @@ export default function OAuth2FlowPage() {
       if (parsed) setTokenClaims(parsed.payload);
     } catch (error) {
       addLog(logError('Client credentials grant failed', { error: String(error) }));
+      toast.error('Client credentials grant failed');
     } finally {
       setLoading(false);
     }
@@ -331,6 +348,7 @@ export default function OAuth2FlowPage() {
           setTokens(result.tokens!);
           setPolling(false);
           addLog(logInfo('Device authorization completed - tokens received'));
+          toast.success('Device authorization completed');
 
           const parsed = parseJWT(result.tokens!.access_token);
           if (parsed) setTokenClaims(parsed.payload);
@@ -380,11 +398,56 @@ export default function OAuth2FlowPage() {
 
       setTokens(tokenResponse);
       addLog(logInfo('New tokens received'));
+      toast.success('Tokens refreshed successfully');
 
       const parsed = parseJWT(tokenResponse.access_token);
       if (parsed) setTokenClaims(parsed.payload);
     } catch (error) {
       addLog(logError('Token refresh failed', { error: String(error) }));
+      toast.error('Token refresh failed');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleTokenExchange = async () => {
+    if (!selectedProvider?.endpoints.tokenUrl) {
+      toast.error('Provider is missing token URL');
+      return;
+    }
+
+    if (!subjectToken) {
+      toast('Please enter a subject token', { icon: '⚠️' });
+      return;
+    }
+
+    setLoading(true);
+    setLogs([]);
+    setTokens({});
+
+    try {
+      addLog(logInfo('Requesting tokens using Token Exchange (RFC 8693)'));
+
+      const tokenResponse = await requestTokenExchange({
+        tokenEndpoint: selectedProvider.endpoints.tokenUrl,
+        subjectToken,
+        subjectTokenType: subjectTokenType === 'custom' ? customSubjectTokenType : subjectTokenType,
+        clientId: selectedProvider.clientId!,
+        clientSecret: selectedProvider.clientSecret,
+        scope,
+        resource: resource || undefined,
+        audience: audience || undefined,
+      });
+
+      setTokens(tokenResponse);
+      addLog(logInfo('Tokens received successfully'));
+      toast.success('Token exchange successful');
+
+      const parsed = parseJWT(tokenResponse.access_token);
+      if (parsed) setTokenClaims(parsed.payload);
+    } catch (error) {
+      addLog(logError('Token exchange failed', { error: String(error) }));
+      toast.error('Token exchange failed');
     } finally {
       setLoading(false);
     }
@@ -438,6 +501,7 @@ export default function OAuth2FlowPage() {
       });
 
       addLog(logInfo('Token revoked successfully'));
+      toast.success('Token revoked successfully');
       setTokens({});
       setTokenClaims(null);
       setIntrospectionResult(null);
@@ -493,6 +557,7 @@ export default function OAuth2FlowPage() {
                   { value: 'password', label: 'Password Credentials (legacy)' },
                   { value: 'client_credentials', label: 'Client Credentials' },
                   { value: 'device_code', label: 'Device Code' },
+                  { value: 'token_exchange', label: 'Token Exchange' },
                 ]}
               />
 
@@ -509,14 +574,24 @@ export default function OAuth2FlowPage() {
                 <label className="block text-xs font-medium text-muted-foreground mb-1">
                   Redirect URI
                 </label>
-                <p className="px-3 py-2 rounded-lg border border-border bg-muted text-foreground text-xs font-mono break-all">
-                  {redirectUri || 'Not configured'}
-                </p>
+                <Input
+                  value={redirectUri}
+                  onChange={(e) => setRedirectUri(e.target.value)}
+                  placeholder="https://your-app.com/callback"
+                  className="font-mono text-sm"
+                />
               </div>
 
               {/* Authorization Code Flow */}
               {grantType === 'authorization_code' && (
                 <>
+                <Input
+                  label="Nonce"
+                  value={nonce}
+                  onChange={(e) => setNonce(e.target.value)}
+                  placeholder="Optional nonce parameter"
+                  helperText="Used to prevent replay attacks. Will be generated automatically if left empty."
+                />
                   {/* Prompt Parameter */}
                   <Select
                     label="Prompt"
@@ -602,6 +677,125 @@ export default function OAuth2FlowPage() {
                     <Monitor className="w-4 h-4" />
                     Start Device Code Flow
                   </Button>
+                </>
+              )}
+
+              {/* Token Exchange */}
+              {grantType === 'token_exchange' && (
+                <>
+                  <Alert variant="info">
+                    Token exchange allows a client to exchange an existing token for a new one.
+                  </Alert>
+                  <div className="space-y-4">
+                    <div className="flex justify-between items-center mb-1">
+                      <label className="text-xs font-medium text-muted-foreground">Subject Token (Do authorize first to get access token)</label>
+                      <div className="flex gap-2">
+                        {tokens.access_token && (
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            className="h-6 text-[10px] text-blue-400 hover:text-blue-300"
+                            onClick={() => {
+                              setSubjectToken(tokens.access_token!);
+                              setSubjectTokenType('urn:ietf:params:oauth:token-type:access_token');
+                            }}
+                          >
+                            Use Access Token
+                          </Button>
+                        )}
+                        {tokens.id_token && (
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            className="h-6 text-[10px] text-purple-400 hover:text-purple-300"
+                            onClick={() => {
+                              setSubjectToken(tokens.id_token!);
+                              setSubjectTokenType('urn:ietf:params:oauth:token-type:jwt');
+                            }}
+                          >
+                            Use ID Token
+                          </Button>
+                        )}
+                        {!tokens.access_token && !tokens.id_token && flowRuns.length > 0 && (
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            className="h-6 text-[10px] text-orange-400 hover:text-orange-300"
+                            onClick={() => {
+                              const lastRun = [...flowRuns].reverse().find(r => r.artifacts?.accessToken || r.artifacts?.idToken);
+                              if (lastRun?.artifacts?.accessToken) {
+                                setSubjectToken(lastRun.artifacts.accessToken);
+                                setSubjectTokenType('urn:ietf:params:oauth:token-type:access_token');
+                                addLog(logInfo('Restored Access Token from previous flow run'));
+                              } else if (lastRun?.artifacts?.idToken) {
+                                setSubjectToken(lastRun.artifacts.idToken);
+                                setSubjectTokenType('urn:ietf:params:oauth:token-type:jwt');
+                                addLog(logInfo('Restored ID Token from previous flow run'));
+                              } else {
+                                toast.error('No tokens found in recent flow history');
+                              }
+                            }}
+                          >
+                            Restore Last Token
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                    <TextArea
+                      value={subjectToken}
+                      onChange={(e) => setSubjectToken(e.target.value)}
+                      placeholder="Paste the token to exchange..."
+                      className="font-mono text-xs"
+                      rows={3}
+                    />
+                    
+                    <div className="space-y-3">
+                      <Select
+                        label="Subject Token Type"
+                        value={subjectTokenType}
+                        onChange={(e) => {
+                          setSubjectTokenType(e.target.value);
+                          if (e.target.value !== 'custom') {
+                            setCustomSubjectTokenType('');
+                          }
+                        }}
+                        options={[
+                          { value: 'urn:ietf:params:oauth:token-type:access_token', label: 'urn:ietf:params:oauth:token-type:access_token' },
+                          { value: 'urn:ietf:params:oauth:token-type:jwt', label: 'urn:ietf:params:oauth:token-type:jwt' },
+                          { value: 'custom', label: 'Other (Custom Value)' },
+                        ]}
+                      />
+                      
+                      {subjectTokenType === 'custom' && (
+                        <Input
+                          label="Custom Subject Token Type"
+                          value={customSubjectTokenType}
+                          onChange={(e) => setCustomSubjectTokenType(e.target.value)}
+                          placeholder="e.g. urn:logto:token-type:personal_access_token"
+                        />
+                      )}
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <Input
+                        label="Resource (Optional)"
+                        value={resource}
+                        onChange={(e) => setResource(e.target.value)}
+                        placeholder="https://api.example.com"
+                      />
+                      <Input
+                        label="Audience (Optional)"
+                        value={audience}
+                        onChange={(e) => setAudience(e.target.value)}
+                        placeholder="api://my-service"
+                      />
+                    </div>
+
+                    <Button onClick={handleTokenExchange} loading={loading} className="w-full">
+                      <RefreshCw className="w-4 h-4" />
+                      Exchange Token
+                    </Button>
+                  </div>
                 </>
               )}
             </div>

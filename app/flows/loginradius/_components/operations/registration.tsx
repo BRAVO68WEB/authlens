@@ -5,7 +5,7 @@ import { Input, Select } from '@/components/Input';
 import { Button } from '@/components/Button';
 import { Alert } from '@/components/Alert';
 import { UserPlus } from 'lucide-react';
-import { toast } from 'sonner';
+import { toast } from 'react-hot-toast';
 import { buildLoginRadiusApiUrl, fetchLoginRadiusConfig } from '@/lib/loginradius';
 import { logInfo, logError } from '@/lib/logging';
 import { OperationRunner } from '../operation-runner';
@@ -189,7 +189,7 @@ function RegistrationOperation({ provider, setAccessToken, addLog }: OperationPr
               }
 
               if (schema.length === 0 && (!formData.emailid || !formData.password)) {
-                toast.warning('Please enter email and password');
+                toast('Please enter email and password', { icon: '⚠️' });
                 return;
               }
 
@@ -197,7 +197,7 @@ function RegistrationOperation({ provider, setAccessToken, addLog }: OperationPr
                 const requiredFields = schema.filter(f => f.rules?.includes('required') && f.Checked);
                 const missing = requiredFields.filter(f => !formData[f.name]?.trim());
                 if (missing.length > 0) {
-                  toast.warning(`Please fill in: ${missing.map(f => f.display || f.name).join(', ')}`);
+                  toast(`Please fill in: ${missing.map(f => f.display || f.name).join(', ')}`, { icon: '⚠️' });
                   return;
                 }
               }
@@ -228,9 +228,10 @@ function RegistrationOperation({ provider, setAccessToken, addLog }: OperationPr
                   body: JSON.stringify(buildPayload()),
                 });
 
-                if (res.ok) {
-                  addLog(logInfo('Registration successful'));
-                  setFormData({});
+                 if (res.ok) {
+                   addLog(logInfo('Registration successful'));
+                   toast.success('Registration successful');
+                   setFormData({});
                 } else {
                   addLog(logError('Registration failed', res.data as Record<string, unknown>));
                 }

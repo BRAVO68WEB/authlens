@@ -3,7 +3,7 @@
 import { Button } from '@/components/Button';
 import { Alert } from '@/components/Alert';
 import { Settings } from 'lucide-react';
-import { toast } from 'sonner';
+import { toast } from 'react-hot-toast';
 import { getSiteConfigUrl } from '@/lib/loginradius';
 import { logInfo, logError } from '@/lib/logging';
 import { OperationRunner } from '../operation-runner';
@@ -35,6 +35,7 @@ function SiteConfigOperation({ provider, addLog }: OperationProps) {
 
                 if (res.ok) {
                   addLog(logInfo('Site config retrieved successfully'));
+                  toast.success('Site config retrieved successfully');
                 } else {
                   addLog(logError('Get site config failed', res.data as Record<string, unknown>));
                 }

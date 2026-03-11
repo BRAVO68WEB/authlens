@@ -11,7 +11,7 @@ import { Plus, Trash2, Edit2, Globe, Upload, Key, Download } from 'lucide-react'
 import { discoverFromIssuer } from '@/lib/oidc';
 import { generateSPCertificate, fetchSAMLMetadata } from '@/lib/saml';
 import { fetchLoginRadiusConfig } from '@/lib/loginradius';
-import { toast } from 'sonner';
+import { toast } from 'react-hot-toast';
 
 export default function ProvidersPage() {
   const { providers, addProvider, updateProvider, deleteProvider } = useStore();
@@ -43,9 +43,11 @@ export default function ProvidersPage() {
     e.preventDefault();
     if (editingId) {
       updateProvider(editingId, formData);
+      toast.success('Provider updated successfully');
       setEditingId(null);
     } else {
       addProvider(formData as Omit<ProviderConfig, 'id' | 'createdAt' | 'updatedAt'>);
+      toast.success('Provider added successfully');
       setIsAdding(false);
     }
     resetForm();
@@ -60,6 +62,7 @@ export default function ProvidersPage() {
   const handleDelete = (id: string) => {
     if (confirm('Are you sure you want to delete this provider?')) {
       deleteProvider(id);
+      toast.success('Provider deleted successfully');
     }
   };
 
@@ -104,7 +107,7 @@ export default function ProvidersPage() {
 
   const handleFetchMetadata = async () => {
     if (!metadataUrl) {
-      toast.warning('Please enter a metadata URL');
+      toast('Please enter a metadata URL', { icon: '⚠️' });
       return;
     }
 
@@ -131,7 +134,7 @@ export default function ProvidersPage() {
 
   const handleDownloadPrivateKey = () => {
     if (!formData.saml?.privateKey) {
-      toast.warning('No private key available');
+      toast('No private key available', { icon: '⚠️' });
       return;
     }
     const blob = new Blob([formData.saml.privateKey], { type: 'text/plain' });
@@ -147,7 +150,7 @@ export default function ProvidersPage() {
 
   const handleDownloadCertificate = () => {
     if (!formData.saml?.certificates || formData.saml.certificates.length === 0) {
-      toast.warning('No certificate available');
+      toast('No certificate available', { icon: '⚠️' });
       return;
     }
     const blob = new Blob([formData.saml.certificates[0]], { type: 'text/plain' });
@@ -644,7 +647,7 @@ export default function ProvidersPage() {
                       onClick={async () => {
                         const url = formData.loginradius?.hostedPageUrl;
                         if (!url) {
-                          toast.warning('Please enter a hosted page URL');
+                          toast('Please enter a hosted page URL', { icon: '⚠️' });
                           return;
                         }
                         setLrFetching(true);

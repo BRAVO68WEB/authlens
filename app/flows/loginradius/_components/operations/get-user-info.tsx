@@ -3,7 +3,7 @@
 import { Button } from '@/components/Button';
 import { Alert } from '@/components/Alert';
 import { User } from 'lucide-react';
-import { toast } from 'sonner';
+import { toast } from 'react-hot-toast';
 import { buildLoginRadiusApiUrl } from '@/lib/loginradius';
 import { logInfo, logError } from '@/lib/logging';
 import { OperationRunner } from '../operation-runner';
@@ -31,7 +31,7 @@ function GetUserInfoOperation({ provider, accessToken, addLog }: OperationProps)
                 return;
               }
               if (!accessToken) {
-                toast.warning('Please login first to get an access token');
+                toast('Please login first to get an access token', { icon: '⚠️' });
                 return;
               }
 
@@ -51,6 +51,7 @@ function GetUserInfoOperation({ provider, accessToken, addLog }: OperationProps)
 
                 if (res.ok) {
                   addLog(logInfo('User info retrieved successfully'));
+                  toast.success('User info retrieved successfully');
                 } else {
                   addLog(logError('Get user info failed', res.data as Record<string, unknown>));
                 }

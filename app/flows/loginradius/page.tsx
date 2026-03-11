@@ -13,7 +13,7 @@ import { OPERATIONS } from './_components/operations';
 import type { LogEntry } from '@/lib/types';
 import { Copy, X, Check, Shield } from 'lucide-react';
 import { copyToClipboard } from '@/lib/utils';
-import { toast } from 'sonner';
+import { toast } from 'react-hot-toast';
 
 export default function LoginRadiusFlowPage() {
   const { providers, selectedProviderId } = useStore();
@@ -137,7 +137,7 @@ export default function LoginRadiusFlowPage() {
                     size="sm"
                     onClick={() => {
                       setAccessToken(null);
-                      toast.info('Token cleared');
+                      toast.success('Token cleared');
                     }}
                   >
                     <X className="h-3 w-3" />
